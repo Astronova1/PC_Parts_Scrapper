@@ -4,7 +4,7 @@
     {
         public int ScrapedItemId { get; set; }
         public Uri? Url { get; set; }
-        public List<PriceHistory>? PriceHistory { get; private set; } = new List<PriceHistory>();  
+        public List<PriceHistory>? PriceHistory { get; private set; }  
         public int StoreId { get; set; }
         public Store? Store {  get; set; }
         public int ProductId { get; set; }
