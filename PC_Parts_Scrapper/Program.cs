@@ -1,4 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using PC_Parts_Scrapper.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string"
+        + "'DefaultConnection' not found.");
+
+
+builder.Services.AddDbContextPool<PcPartsContext>(opt =>
+    opt.UseNpgsql(connectionString));
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
