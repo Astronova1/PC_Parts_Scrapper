@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PC_Parts_Scrapper.Data;
+using PC_Parts_Scrapper.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,8 @@ var connectionString =
 
 builder.Services.AddDbContextPool<PcPartsContext>(opt =>
     opt.UseNpgsql(connectionString));
+
+builder.Services.AddHostedService<ScrapperWorker>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
