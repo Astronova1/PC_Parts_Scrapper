@@ -23,13 +23,17 @@ namespace PC_Parts_Scrapper.Services
             {
                 var name = pro.SelectSingleNode(".//a[contains(@class,'product-title')]");
                 string cpu_Name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "UNknown");
-
-                Console.WriteLine(cpu_Name);
-
+                
+                Console.WriteLine($"CPU: {cpu_Name}");
+   
                 var cpu = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");
-                string? price = cpu?.InnerText.Replace("Rs", "''").Trim();
-                decimal cpu_Price = decimal.Parse(price.Replace(",", ""));
-                Console.WriteLine(cpu_Price);
+                if (cpu != null && !string.IsNullOrWhiteSpace(cpu.InnerText )) {
+                    var price = cpu.InnerText.Replace("Rs.", "").Replace(",","").Trim();
+                    decimal.TryParse(price, out decimal cpu_Price);
+                    Console.WriteLine($"Price: {cpu_Price}");
+                }
+               
+                
             }
 
         }
