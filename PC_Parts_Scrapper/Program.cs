@@ -13,6 +13,7 @@ builder.Services.AddDbContextPool<PcPartsContext>(opt =>
     opt.UseNpgsql(connectionString));
 
 builder.Services.AddHostedService<ScrapperWorker>();
+builder.Services.AddTransient<HtmlScraperService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

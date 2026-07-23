@@ -16,6 +16,10 @@ namespace PC_Parts_Scrapper.Services
                 {
                     var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>(); //this is scoped Db Context
                     Console.WriteLine("ScrapperWorker created");
+                    var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
+                    Console.WriteLine("Starting CZone Scrape...");
+                    await scraper.Czone();
+                    Console.WriteLine("CZone Scrape Completed!");
                 }  //the database scope ends here and the scope is disposed now
                 await Task.Delay(TimeSpan.FromHours(6), stoppingToken);   //run after 6 hours and shutdown if request by stoppingToken
             }
