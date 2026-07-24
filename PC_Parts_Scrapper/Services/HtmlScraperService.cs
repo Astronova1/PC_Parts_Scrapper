@@ -27,6 +27,7 @@ namespace PC_Parts_Scrapper.Services
                 _pc_parts_Context.Add(s);
                 return s;
             }
+            await _pc_parts_Context.SaveChangesAsync();
             return store;
         }
         public async Task<Product> createorFind_ScrapProduct(string search_name)
@@ -39,6 +40,7 @@ namespace PC_Parts_Scrapper.Services
                 _pc_parts_Context.Add(p1);
                 return p1;
             }
+            await _pc_parts_Context.SaveChangesAsync();
             return product;
         }
 
@@ -51,21 +53,25 @@ namespace PC_Parts_Scrapper.Services
                 _pc_parts_Context.Add(s1);
                 return s1;
             }
+            await _pc_parts_Context.SaveChangesAsync();
             return s_item;
         }
 
-        public async Task<PriceHistory> createOrFind_History(int id,string item)
+
+        public async Task<PriceHistory> createOrFind_History(int _id, int _price)
         {
             PriceHistory p1 = new PriceHistory {
-                ScrapedItemId = id,
-                ScrapedItem = item,
+                ScrapedItemId = _id,
+                Price = _price,
                 ChecketAt = DateTime.Now,
             };
 
-            await _pc_parts_Context.PriceHistory.AddAsync(p1);
+             _pc_parts_Context.Add(p1);
+            await  _pc_parts_Context.SaveChangesAsync();
             return p1;
         }
 
+        
         public async Task Czone()
         {           
 
