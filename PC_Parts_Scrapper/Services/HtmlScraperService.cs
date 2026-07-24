@@ -25,9 +25,10 @@ namespace PC_Parts_Scrapper.Services
             {
                 Store s = new Store { StoreId =  id , Name = name, URL = url};
                 _pc_parts_Context.Add(s);
+                await _pc_parts_Context.SaveChangesAsync();
                 return s;
             }
-            await _pc_parts_Context.SaveChangesAsync();
+            
             return store;
         }
         public async Task<Product> createorFind_ScrapProduct(string search_name)
@@ -38,9 +39,10 @@ namespace PC_Parts_Scrapper.Services
             {
                 Product p1  = new Product { Name = search_name };
                 _pc_parts_Context.Add(p1);
+                await _pc_parts_Context.SaveChangesAsync();
                 return p1;
+
             }
-            await _pc_parts_Context.SaveChangesAsync();
             return product;
         }
 
@@ -51,19 +53,19 @@ namespace PC_Parts_Scrapper.Services
             {
                 ScrapedItem s1= new ScrapedItem { StoreId = s_id, ProductId = p_id, Url = url };
                 _pc_parts_Context.Add(s1);
+                await _pc_parts_Context.SaveChangesAsync();
                 return s1;
             }
-            await _pc_parts_Context.SaveChangesAsync();
             return s_item;
         }
 
 
-        public async Task<PriceHistory> createOrFind_History(int _id, int _price)
+        public async Task<PriceHistory> createOrFind_History(int _id, decimal _price)
         {
             PriceHistory p1 = new PriceHistory {
                 ScrapedItemId = _id,
                 Price = _price,
-                ChecketAt = DateTime.Now,
+                CheckedAt = DateTimeOffset.Now,
             };
 
              _pc_parts_Context.Add(p1);
@@ -82,7 +84,7 @@ namespace PC_Parts_Scrapper.Services
             //var pageTitle = doc.DocumentNode.SelectSingleNode("//title")?.InnerText.Trim();
             //Console.WriteLine($"Page Title: {pageTitle}");
             using var playwright = await Playwright.CreateAsync();        //here we initilize playwrite
-            await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true }); //launc using chromium
+            await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false }); //launc using chromium
             var page = await browser.NewPageAsync();        //open new page
             await page.GotoAsync("https://www.czone.com.pk/processors-pakistan-ppt.85.aspx");     //navigate to the link
 
