@@ -6,7 +6,7 @@
         public int ScrapedItemId { get; set; }
         public ScrapedItem? ScrapedItem { get; set; }   
         public decimal Price {  get; set; }
-        public DateTimeOffset ChecketAt { get; set; }
+        public DateTimeOffset CheckedAt { get; set; }
 
     }
 }
