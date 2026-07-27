@@ -19,7 +19,7 @@ namespace PC_Parts_Scrapper.Services
 
         public async Task<Store> createOrFind_Store(int id, string name, Uri url)
         {
-            var store = await _pc_parts_Context.Stores.FirstOrDefaultAsync(s=>s.StoreId == id);
+            var store = await _pc_parts_Context.Stores.FirstOrDefaultAsync(s=>s.StoreId == id);    
 
             if (store == null)
             {
@@ -105,17 +105,30 @@ namespace PC_Parts_Scrapper.Services
             {
                 var name = pro.SelectSingleNode(".//a[contains(@class,'product-title')]");
                 string cpu_Name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "UNknown");       //select the product title
-                
+
                 Console.WriteLine($"CPU: {cpu_Name}");
-   
+
                 var cpu = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");        //product price
-                if (cpu != null && !string.IsNullOrWhiteSpace(cpu.InnerText )) {                    //check if the cpu price is not null or empty
-                    var price = cpu.InnerText.Replace("Rs.", "").Replace(",","").Trim();            //remove un necessary formating
+
+                var url_node = pro.SelectSingleNode(".//div[contains(@class, 'content')]//a");
+                string base_uri = "https://www.czone.com.pk";
+                string href = url_node?.GetAttributeValue("href", "/processors-amd-ryzen-5-amd-ryzen-5-5600-desktop-processor-6-core-12-thread-unlocked-socket-am4-tray-pakistan-p.17449.aspx") ?? "";
+                Uri rel_url = new Uri(new Uri(base_uri), href);
+
+
+
+                if (cpu != null && !string.IsNullOrWhiteSpace(cpu.InnerText))
+                {                    //check if the cpu price is not null or empty
+                    var price = cpu.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
                     decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
                     Console.WriteLine($"Price: {cpu_Price}");
+                    if (rel_url != null)
+                    {
+                        Console.WriteLine($"URL: {rel_url}");
+                    }
+
+
                 }
-               
-                
             }
 
         }
