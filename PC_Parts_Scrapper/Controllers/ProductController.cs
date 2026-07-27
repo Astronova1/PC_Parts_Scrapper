@@ -15,7 +15,7 @@ namespace PC_Parts_Scrapper.Controllers
         {
             return View();
         }
-
+        [HttpGet]
         public async Task<IActionResult> getProducts()
         {
 
@@ -27,7 +27,7 @@ namespace PC_Parts_Scrapper.Controllers
                     p.ProductId,
                     p.Name,
 
-                    // 👇 ONE row per product; its store-listings live in this nested list
+                    //
                     Listings = p.ScrapedItems.Select(si => new
                     {
                         StoreName = si.Store!.Name,        // which store
