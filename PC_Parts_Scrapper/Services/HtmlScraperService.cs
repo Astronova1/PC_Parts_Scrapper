@@ -19,7 +19,7 @@ namespace PC_Parts_Scrapper.Services
 
         public async Task<Store> createOrFind_Store(int id, string name, Uri url)
         {
-            var store = await _pc_parts_Context.Stores.FirstOrDefaultAsync(s=>s.StoreId == id);    
+            var store = await _pc_parts_Context.Stores.FirstOrDefaultAsync(s=>s.Name == name);    
 
             if (store == null)
             {
