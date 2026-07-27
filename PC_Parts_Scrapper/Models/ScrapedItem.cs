@@ -4,11 +4,11 @@
     {
         public int ScrapedItemId { get; set; }
         public Uri? Url { get; set; }
-        public List<PriceHistory>? PriceHistory { get; private set; } = new List<PriceHistory>();  
         public int StoreId { get; set; }
         public Store? Store {  get; set; }
         public int ProductId { get; set; }
-        public Product? Product { get; set; } 
+        public Product? Product { get; set; }
+        public ICollection<PriceHistory> PriceHistories { get; set; } = new List<PriceHistory>();
 
     }
 }
