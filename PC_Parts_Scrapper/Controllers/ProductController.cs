@@ -19,12 +19,30 @@ namespace PC_Parts_Scrapper.Controllers
         public async Task<IActionResult> getProducts()
         {
 
-            var query = from p in _context.Products
-                        from si in p.ScrapedItems
-                        where p.Name != null
+            var query = await (
+                from p in _context.Products
+                where p.Name != null
+                select new
+                {
+                    p.ProductId,
+                    p.Name,
+
+                    // 👇 ONE row per product; its store-listings live in this nested list
+                    Listings = p.ScrapedItems.Select(si => new
+                    {
+                        StoreName = si.Store!.Name,        // which store
+                        si.Url,                            // that store's link
+                                                           // latest price for THIS store's listing (newest snapshot first)
+                        LatestPrice = si.PriceHistories
+                                        .OrderByDescending(ph => ph.CheckedAt)
+                                        .Select(ph => ph.Price)
+                                        .FirstOrDefault()
+                    }).ToList()
+                }
+            ).ToListAsync();
 
 
-            return View();
+            return View(query);
         }
     }
 }
