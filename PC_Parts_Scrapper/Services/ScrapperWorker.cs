@@ -16,7 +16,7 @@ namespace PC_Parts_Scrapper.Services
                 {
                     var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>(); //this is scoped Db Context
                     Console.WriteLine("ScrapperWorker created");
-                    var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
+                    var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();  //use Scrapper in the scope
                     Console.WriteLine("Starting CZone Scrape...");
                     await scraper.Czone();
                     Console.WriteLine("CZone Scrape Completed!");

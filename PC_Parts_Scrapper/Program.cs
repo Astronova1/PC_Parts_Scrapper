@@ -12,8 +12,8 @@ var connectionString =
 builder.Services.AddDbContextPool<PcPartsContext>(opt =>
     opt.UseNpgsql(connectionString));
 
-builder.Services.AddHostedService<ScrapperWorker>();
-builder.Services.AddTransient<HtmlScraperService>();
+builder.Services.AddHostedService<ScrapperWorker>();         //register background service of Worker 
+builder.Services.AddTransient<HtmlScraperService>();        //create new instance of Scraper Service 
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

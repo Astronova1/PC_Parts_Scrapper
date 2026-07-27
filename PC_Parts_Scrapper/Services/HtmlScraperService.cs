@@ -7,6 +7,7 @@ using PC_Parts_Scrapper.Models;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Xml;
 namespace PC_Parts_Scrapper.Services
 {
     public class HtmlScraperService
@@ -17,13 +18,13 @@ namespace PC_Parts_Scrapper.Services
             _pc_parts_Context = pc_parts_Context;
         }
 
-        public async Task<Store> createOrFind_Store(int id, string name, Uri url)
+        public async Task<Store> createOrFind_Store(string name, Uri url)
         {
             var store = await _pc_parts_Context.Stores.FirstOrDefaultAsync(s=>s.Name == name);    
 
             if (store == null)
             {
-                Store s = new Store { StoreId =  id , Name = name, URL = url};
+                Store s = new Store {Name = name, URL = url};
                 _pc_parts_Context.Add(s);
                 await _pc_parts_Context.SaveChangesAsync();
                 return s;
@@ -65,7 +66,7 @@ namespace PC_Parts_Scrapper.Services
             PriceHistory p1 = new PriceHistory {
                 ScrapedItemId = _id,
                 Price = _price,
-                CheckedAt = DateTimeOffset.Now,
+                CheckedAt = DateTimeOffset.UtcNow   // Convert your variable to UTC offset 0
             };
 
              _pc_parts_Context.Add(p1);
@@ -101,10 +102,19 @@ namespace PC_Parts_Scrapper.Services
                 Console.WriteLine("No product found");
                 return;
             }
+
+            Uri link = new Uri("https://www.czone.com.pk");
+
+            var currentStore = await createOrFind_Store("Czone", link);
+
             foreach (var pro in productsNds)
             {
                 var name = pro.SelectSingleNode(".//a[contains(@class,'product-title')]");
                 string cpu_Name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "UNknown");       //select the product title
+
+                var product_Name = await createorFind_ScrapProduct(cpu_Name);
+
+                var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId, new Uri("https://www.czone.com.pk"));
 
                 Console.WriteLine($"CPU: {cpu_Name}");
 
@@ -121,11 +131,17 @@ namespace PC_Parts_Scrapper.Services
                 {                    //check if the cpu price is not null or empty
                     var price = cpu.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
                     decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
+                    if (cpu_Price < 0)
+                    {
+                        Console.WriteLine("Out Of Stock");
+                    }
                     Console.WriteLine($"Price: {cpu_Price}");
                     if (rel_url != null)
                     {
                         Console.WriteLine($"URL: {rel_url}");
                     }
+
+                    var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
 
 
                 }
@@ -134,4 +150,3 @@ namespace PC_Parts_Scrapper.Services
         }
     }
 }
-            
