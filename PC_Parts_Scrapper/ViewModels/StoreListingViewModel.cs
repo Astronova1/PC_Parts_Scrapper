@@ -1,4 +1,4 @@
-﻿namespace PC_Parts_Scrapper.Views.ViewModels
+﻿namespace PC_Parts_Scrapper.ViewModels
 {
     public class StoreListingViewModel
     {
