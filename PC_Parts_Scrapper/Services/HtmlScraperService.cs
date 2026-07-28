@@ -85,7 +85,7 @@ namespace PC_Parts_Scrapper.Services
             //var pageTitle = doc.DocumentNode.SelectSingleNode("//title")?.InnerText.Trim();
             //Console.WriteLine($"Page Title: {pageTitle}");
             using var playwright = await Playwright.CreateAsync();        //here we initilize playwrite
-            await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false }); //launc using chromium
+            await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true }); //launc using chromium
             var page = await browser.NewPageAsync();        //open new page
             await page.GotoAsync("https://www.czone.com.pk/processors-pakistan-ppt.85.aspx");     //navigate to the link
 
