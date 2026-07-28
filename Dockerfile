@@ -15,40 +15,23 @@ RUN dotnet build "PC_Parts_Scrapper.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "PC_Parts_Scrapper.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Stage 3: Install Playwright & Browsers inside SDK environment
-# We install PowerShell and run Playwright install-deps to fetch Chromium + OS dependencies
-RUN pwsh /app/publish/playwright.ps1 install --with-deps chromium
-
-# Stage 4: ASP.NET Core 10 Runtime
+# Stage 3: ASP.NET Core 10 Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Copy the compiled app from publish
+# Prevent interactive prompts during apt package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Copy published application
 COPY --from=publish /app/publish .
 
-# Copy the downloaded Chromium binaries from root cache to runtime container
-COPY --from=publish /root/.cache/ms-playwright /root/.cache/ms-playwright
-
-# Install required Linux shared libraries for Chromium to run on Debian/Ubuntu
+# Install PowerShell and Playwright browser + OS dependencies automatically
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libdbus-1-3 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+    wget \
+    gnupg \
+    powershell \
+    && rm -rf /var/lib/apt/lists/* \
+    && pwsh ./playwright.ps1 install --with-deps chromium
 
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
