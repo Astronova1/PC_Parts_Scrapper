@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Models;
+using PC_Parts_Scrapper.ViewModels;
 namespace PC_Parts_Scrapper.Controllers
 {
     public class ProductController : Controller
@@ -22,16 +23,16 @@ namespace PC_Parts_Scrapper.Controllers
             var query = await (
                 from p in _context.Products
                 where p.Name != null
-                select new
+                select new ProductDisplayViewModel
                 {
-                    p.ProductId,
-                    p.Name,
+                    ProductId = p.ProductId,
+                    Name = p.Name,
 
                     //
-                    Listings = p.ScrapedItems.Select(si => new
+                    Listings = p.ScrapedItems.Select(si => new StoreListingViewModel
                     {
                         StoreName = si.Store!.Name,        // which store
-                        si.Url,                            // that store's link
+                        Url = si.Url,                            // that store's link
                                                            // latest price for THIS store's listing (newest snapshot first)
                         LatestPrice = si.PriceHistories
                                         .OrderByDescending(ph => ph.CheckedAt)
