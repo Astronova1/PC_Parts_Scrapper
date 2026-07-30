@@ -430,3 +430,6 @@ FodyWeavers.xsd
 /PC_Parts_Scrapper/Processor Prices in Pakistan_files
 /PC_Parts_Scrapper/Processor Prices in Pakistan.htm
 /PC_Parts_Scrapper/ProcessorPricesinPakistan.htm
+
+PC_Parts_Scrapper/publish-out/
+PC_Parts_Scrapper/czone_debug.html
