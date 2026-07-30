@@ -7,6 +7,7 @@ using PC_Parts_Scrapper.Models;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
 using System.Xml;
 namespace PC_Parts_Scrapper.Services
 {
@@ -47,12 +48,12 @@ namespace PC_Parts_Scrapper.Services
             return product;
         }
 
-        public async Task<ScrapedItem> createOrFind_ScrapItem(int s_id, int p_id, Uri url )
+        public async Task<ScrapedItem> createOrFind_ScrapItem(int s_id, int p_id, Uri url,string product_Name )
         {
             var s_item = await _pc_parts_Context.ScrapedItems.FirstOrDefaultAsync(s => s.StoreId == s_id && s.ProductId == p_id);
             if (s_item == null)
             {
-                ScrapedItem s1= new ScrapedItem { StoreId = s_id, ProductId = p_id, Url = url };
+                ScrapedItem s1= new ScrapedItem { StoreId = s_id, ProductId = p_id, Url = url, Title = product_Name };
                 _pc_parts_Context.Add(s1);
                 await _pc_parts_Context.SaveChangesAsync();
                 return s1;
@@ -74,7 +75,13 @@ namespace PC_Parts_Scrapper.Services
             return p1;
         }
 
-        
+        public string NormalizedString(string input)
+        {
+            return input.ToLower().Trim().Replace("-", " ");
+        }
+
+
+
         public async Task Czone()
         {           
 
@@ -115,43 +122,78 @@ namespace PC_Parts_Scrapper.Services
             var exisitingPNames = from p in existingProducts 
                                   orderby p.Name.Length descending
                                   select p; // Get the names of existing products
-                                  
+             //create regex pattern to match the base gpu product
+            string pattern = @"(AMD|Intel|)\s?(Core|Ryzen)\s?((5|7|9)\s)?\d{4,9}";
 
             foreach (var pro in productsNds)
             {
                 var name = pro.SelectSingleNode(".//a[contains(@class,'product-title')]");
                 string cpu_Name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "UNknown");       //select the product title
 
-                var product_Name = await createorFind_ScrapProduct(cpu_Name);
+                Match match = Regex.Match(cpu_Name,pattern, RegexOptions.IgnoreCase);
 
-                var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId, new Uri("https://www.czone.com.pk"));
+                if (match.Success) {
+                    var baseProduct = match.Value.ToUpper();
+                    var product_Name = await createorFind_ScrapProduct(baseProduct);
+                    var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId, new Uri("https://www.czone.com.pk"),cpu_Name);
+                    Console.WriteLine($"CPU: {cpu_Name}");
 
-                Console.WriteLine($"CPU: {cpu_Name}");
+                    var cpu = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");        //product price
 
-                var cpu = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");        //product price
-
-                var url_node = pro.SelectSingleNode(".//div[contains(@class, 'content')]//a");
-                string base_uri = "https://www.czone.com.pk";
-                string href = url_node?.GetAttributeValue("href", "/processors-amd-ryzen-5-amd-ryzen-5-5600-desktop-processor-6-core-12-thread-unlocked-socket-am4-tray-pakistan-p.17449.aspx") ?? "";
-                Uri rel_url = new Uri(new Uri(base_uri), href);
+                    var url_node = pro.SelectSingleNode(".//div[contains(@class, 'content')]//a");
+                    string base_uri = "https://www.czone.com.pk";
+                    string href = url_node?.GetAttributeValue("href", "/processors-amd-ryzen-5-amd-ryzen-5-5600-desktop-processor-6-core-12-thread-unlocked-socket-am4-tray-pakistan-p.17449.aspx") ?? "";
+                    Uri rel_url = new Uri(new Uri(base_uri), href);
 
 
 
-                if (cpu != null && !string.IsNullOrWhiteSpace(cpu.InnerText))
-                {                    //check if the cpu price is not null or empty
-                    var price = cpu.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
-                    decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
-                    if (cpu_Price < 0)
-                    {
-                        Console.WriteLine("Out Of Stock");
+                    if (cpu != null && !string.IsNullOrWhiteSpace(cpu.InnerText))
+                    {                    //check if the cpu price is not null or empty
+                        var price = cpu.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
+                        decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
+                        if (cpu_Price < 0)
+                        {
+                            Console.WriteLine("Out Of Stock");
+                        }
+                        Console.WriteLine($"Price: {cpu_Price}");
+                        if (rel_url != null)
+                        {
+                            Console.WriteLine($"URL: {rel_url}");
+                        }
+
+                        var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
                     }
-                    Console.WriteLine($"Price: {cpu_Price}");
-                    if (rel_url != null)
-                    {
-                        Console.WriteLine($"URL: {rel_url}");
-                    }
 
-                    var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
+                //var product_Name = await createorFind_ScrapProduct(cpu_Name);
+
+                //var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId, new Uri("https://www.czone.com.pk"));
+
+                //Console.WriteLine($"CPU: {cpu_Name}");
+
+                //var cpu = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");        //product price
+
+                //var url_node = pro.SelectSingleNode(".//div[contains(@class, 'content')]//a");
+                //string base_uri = "https://www.czone.com.pk";
+                //string href = url_node?.GetAttributeValue("href", "/processors-amd-ryzen-5-amd-ryzen-5-5600-desktop-processor-6-core-12-thread-unlocked-socket-am4-tray-pakistan-p.17449.aspx") ?? "";
+                //Uri rel_url = new Uri(new Uri(base_uri), href);
+
+
+
+                //if (cpu != null && !string.IsNullOrWhiteSpace(cpu.InnerText))
+                //{                    //check if the cpu price is not null or empty
+                //    var price = cpu.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
+                //    decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
+                //    if (cpu_Price < 0)
+                //    {
+                //        Console.WriteLine("Out Of Stock");
+                //    }
+                //    Console.WriteLine($"Price: {cpu_Price}");
+                //    if (rel_url != null)
+                //    {
+                //        Console.WriteLine($"URL: {rel_url}");
+                //    }
+
+                //    var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
 
 
                 }
