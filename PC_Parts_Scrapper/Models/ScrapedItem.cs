@@ -3,6 +3,7 @@
     public class ScrapedItem
     {
         public int ScrapedItemId { get; set; }
+        public string Title { get; set; } = string.Empty;
         public Uri? Url { get; set; }
         public int StoreId { get; set; }
         public Store? Store {  get; set; }
