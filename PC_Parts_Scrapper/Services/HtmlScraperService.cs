@@ -85,9 +85,12 @@ namespace PC_Parts_Scrapper.Services
             //var pageTitle = doc.DocumentNode.SelectSingleNode("//title")?.InnerText.Trim();
             //Console.WriteLine($"Page Title: {pageTitle}");
             using var playwright = await Playwright.CreateAsync();        //here we initilize playwrite
-            await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true }); //launc using chromium
+            await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false }); //launc using chromium
             var page = await browser.NewPageAsync();        //open new page
             await page.GotoAsync("https://www.czone.com.pk/processors-pakistan-ppt.85.aspx");     //navigate to the link
+
+            await page.WaitForSelectorAsync("a.product-title",
+            new PageWaitForSelectorOptions { Timeout = 30000 });   // 30 seconds, wait for a REAL title
 
             string html_con = await page.ContentAsync();                   //store the html in html
 
@@ -106,6 +109,13 @@ namespace PC_Parts_Scrapper.Services
             Uri link = new Uri("https://www.czone.com.pk");
 
             var currentStore = await createOrFind_Store("Czone", link);
+
+            var existingProducts = await _pc_parts_Context.Products.ToListAsync(); // Fetch existing products from the database
+
+            var exisitingPNames = from p in existingProducts 
+                                  orderby p.Name.Length descending
+                                  select p; // Get the names of existing products
+                                  
 
             foreach (var pro in productsNds)
             {
