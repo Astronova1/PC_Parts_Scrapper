@@ -122,8 +122,11 @@ namespace PC_Parts_Scrapper.Services
             var exisitingPNames = from p in existingProducts 
                                   orderby p.Name.Length descending
                                   select p; // Get the names of existing products
-             //create regex pattern to match the base gpu product
-            string pattern = @"(AMD|Intel|)\s?(Core|Ryzen)\s?((5|7|9)\s)?\d{4,9}";
+                                            //create regex pattern to match the base gpu product
+                                            //string pattern = @"(AMD|Intel)\s?(Core|Ryzen)\s?((Ultra)?)\s?([iI](3579)\d)\s?-?\s\d{4,9}({a-zA-Z0-9}{1,4})?"; //not working
+                                            //string pattern = @"(AMD|Intel)\s?(Core|Ryzen|Ultra)\s?([iI][3579]|\d)?\s?\d{4,5}[a-zA-Z]{0,2}";
+                                            //string pattern = @"(AMD|Intel)\s?(Core\sUltra|Core|Ryzen|Ultra)\s?([iI]|\d)?\s?-?\s?\d{3,5}([a-zA-Z0-9]{1,4})?";
+            string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
 
             foreach (var pro in productsNds)
             {
