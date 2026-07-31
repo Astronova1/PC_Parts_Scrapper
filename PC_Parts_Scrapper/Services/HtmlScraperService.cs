@@ -82,12 +82,12 @@ namespace PC_Parts_Scrapper.Services
 
 
 
-        public async Task Czone()
+        public async Task Czone(string link_url, string pattern)
         {           
             using var playwright = await Playwright.CreateAsync();        //here we initilize playwrite
             await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false }); //launc using chromium
             var page = await browser.NewPageAsync();        //open new page
-            await page.GotoAsync("https://www.czone.com.pk/processors-pakistan-ppt.85.aspx");     //navigate to the link
+            await page.GotoAsync(link_url);    //navigate to the link
 
             await page.WaitForSelectorAsync("a.product-title",
             new PageWaitForSelectorOptions { Timeout = 30000 });   // 30 seconds, wait for a REAL title
@@ -116,7 +116,7 @@ namespace PC_Parts_Scrapper.Services
                                   orderby p.Name.Length descending
                                   select p; // Get the names of existing products
     
-            string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
+            //string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
                 
             foreach (var pro in productsNds)
             {
