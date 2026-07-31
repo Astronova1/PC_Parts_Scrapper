@@ -50,7 +50,7 @@ namespace PC_Parts_Scrapper.Services
 
         public async Task<ScrapedItem> createOrFind_ScrapItem(int s_id, int p_id, Uri url,string product_Name )
         {
-            var s_item = await _pc_parts_Context.ScrapedItems.FirstOrDefaultAsync(s => s.StoreId == s_id && s.ProductId == p_id);
+            var s_item = await _pc_parts_Context.ScrapedItems.FirstOrDefaultAsync(s => s.StoreId == s_id && s.Title == product_Name);
             if (s_item == null)
             {
                 ScrapedItem s1= new ScrapedItem { StoreId = s_id, ProductId = p_id, Url = url, Title = product_Name };
@@ -130,12 +130,12 @@ namespace PC_Parts_Scrapper.Services
                     var cpu = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");        //product price
                     var url_node = pro.SelectSingleNode(".//div[contains(@class, 'content')]//a");
                     string base_uri = "https://www.czone.com.pk";
-                    string href = url_node?.GetAttributeValue("href", "/processors-amd-ryzen-5-amd-ryzen-5-5600-desktop-processor-6-core-12-thread-unlocked-socket-am4-tray-pakistan-p.17449.aspx") ?? "";
+                    string href = url_node?.GetAttributeValue("href", "www.czone.com.pk") ?? "";
                     Uri rel_url = new Uri(new Uri(base_uri), href);
 
                     var baseProduct = match.Value.ToUpper();
                     var product_Name = await createorFind_ScrapProduct(baseProduct);
-                    var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId, rel_url,cpu_Name);
+                    var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId ,rel_url, cpu_Name);
                     Console.WriteLine($"CPU: {cpu_Name}");
 
 
