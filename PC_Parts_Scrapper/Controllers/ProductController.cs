@@ -33,7 +33,8 @@ namespace PC_Parts_Scrapper.Controllers
                     {
                         StoreName = si.Store!.Name,        // which store
                         Url = si.Url,                            // that store's link
-                                                           // latest price for THIS store's listing (newest snapshot first)
+                        ItemTitle = si.Title,                    // that store's title for this product
+                                                                     // latest price for THIS store's listing (newest snapshot first)
                         LatestPrice = si.PriceHistories
                                         .OrderByDescending(ph => ph.CheckedAt)
                                         .Select(ph => ph.Price)
