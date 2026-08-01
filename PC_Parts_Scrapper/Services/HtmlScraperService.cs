@@ -189,7 +189,7 @@ namespace PC_Parts_Scrapper.Services
                 Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
                 if (match.Success)
                 {
-                    var price_node = pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-currencySymbol')]");
+                    var price_node = pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
                     var url_node = pro.SelectSingleNode(".//a");
                     string base_uri = "https://www.zahcomputers.pk";
                     string href = url_node?.GetAttributeValue("href", "www.zahcomputer.pk") ?? "";
@@ -203,7 +203,8 @@ namespace PC_Parts_Scrapper.Services
 
                     if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
                     {                    //check if the cpu price is not null or empty
-                        var price = price_node.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
+                        var price = Regex.Replace(price_node.InnerText, @"[^\d,\.]","".Replace("Rs.", "").Replace(",", "").Trim());            //remove un necessary formating
+
                         decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
                         if (cpu_Price < 0)
                         {
