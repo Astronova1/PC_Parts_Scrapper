@@ -1,6 +1,7 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Playwright;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Models;
@@ -110,11 +111,11 @@ namespace PC_Parts_Scrapper.Services
 
             var currentStore = await createOrFind_Store("Czone", link);
 
-            var existingProducts = await _pc_parts_Context.Products.ToListAsync(); // Fetch existing products from the database
+            //var existingProducts = await _pc_parts_Context.Products.ToListAsync(); // Fetch existing products from the database
 
-            var exisitingPNames = from p in existingProducts 
-                                  orderby p.Name.Length descending
-                                  select p; // Get the names of existing products
+            //var exisitingPNames = from p in existingProducts 
+            //                      orderby p.Name.Length descending
+            //                      select p; // Get the names of existing products
     
             //string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
                 
@@ -156,6 +157,69 @@ namespace PC_Parts_Scrapper.Services
                         var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
                     }
                 }
+            }
+        }
+
+
+
+        public async Task ZahComputers(string url, string pattern)
+        {
+            using var playwright = await Playwright.CreateAsync();   //create instance of playwright
+            await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false });      //use launch firefox 
+            var page = await browser.NewPageAsync();        //open new page
+            await page.GotoAsync(url);    //navigate to the link 
+            string html_con = await page.ContentAsync();                   //store the html in html
+            
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html_con);     //load the html structure
+
+            var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");        //select all product nodes 
+            if (products != null)
+            {
+                Console.WriteLine($"Found {products.Count} products on ZahComputers.");
+            }
+                Uri link = new Uri("https://www.zahcomputers.pk");
+                var curr_store = await createOrFind_Store("ZahComputers", link);
+
+            foreach (var pro in products)
+            {
+                var name = pro.SelectSingleNode(".//h3[contains(@class,'wd-entities-title')]/a");
+                string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "UNknown");       //select the product title)
+
+                Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var price_node = pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-currencySymbol')]");
+                    var url_node = pro.SelectSingleNode(".//a");
+                    string base_uri = "https://www.zahcomputers.pk";
+                    string href = url_node?.GetAttributeValue("href", "www.zahcomputer.pk") ?? "";
+                    Uri rel_url = new Uri(new Uri(base_uri), href);
+
+                    var baseProduct = match.Value.ToUpper();
+                    var product_Name = await createorFind_ScrapProduct(baseProduct);
+                    var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
+                    Console.WriteLine($"CPU: {pro_name}");
+
+
+                    if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
+                    {                    //check if the cpu price is not null or empty
+                        var price = price_node.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
+                        decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
+                        if (cpu_Price < 0)
+                        {
+                            Console.WriteLine("Out Of Stock");
+                        }
+                        Console.WriteLine($"Price: {cpu_Price}");
+                        if (rel_url != null)
+                        {
+                            Console.WriteLine($"URL: {rel_url}");
+                        }
+
+                        var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
+                    }
+
+                }
+
             }
         }
     }

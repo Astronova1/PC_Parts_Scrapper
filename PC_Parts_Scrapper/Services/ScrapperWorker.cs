@@ -29,6 +29,12 @@ namespace PC_Parts_Scrapper.Services
                     await scraper.Czone(cpu_link, pattern);
                     await scraper.Czone(gpu_link, pattern_gpu);
                     Console.WriteLine("CZone Scrape Completed!");
+
+                    Console.WriteLine("Starting ZahComputers Scrape...");
+                    var zah_link = "https://zahcomputers.pk/category/processors/";  //ZahComputers website link
+                    await scraper.ZahComputers(zah_link, pattern);
+                    Console.WriteLine("ZahComputers Scrape Complete");
+
                 }  //the database scope ends here and the scope is disposed now
                 await Task.Delay(TimeSpan.FromHours(6), stoppingToken);   //run after 6 hours and shutdown if request by stoppingToken
             }
