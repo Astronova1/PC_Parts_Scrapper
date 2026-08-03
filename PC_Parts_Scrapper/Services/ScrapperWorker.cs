@@ -31,8 +31,10 @@ namespace PC_Parts_Scrapper.Services
                     Console.WriteLine("CZone Scrape Completed!");
 
                     Console.WriteLine("Starting ZahComputers Scrape...");
-                    var zah_link = "https://zahcomputers.pk/category/processors/";  //ZahComputers website link
-                    await scraper.ZahComputers(zah_link, pattern);
+                    var zah_link_cpu = "https://zahcomputers.pk/category/processors/";  //ZahComputers website link
+                    var zah_link_gpu = "https://zahcomputers.pk/category/graphics-cards/";  //ZahComputers gpu link
+                    await scraper.ZahComputers(zah_link_cpu, pattern);
+                    await scraper.ZahComputers(zah_link_gpu, pattern_gpu);
                     Console.WriteLine("ZahComputers Scrape Complete");
 
                 }  //the database scope ends here and the scope is disposed now
