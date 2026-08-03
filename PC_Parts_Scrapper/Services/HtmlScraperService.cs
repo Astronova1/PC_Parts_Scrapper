@@ -1,60 +1,63 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.Playwright;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Models;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
-using System.Xml;
+
 namespace PC_Parts_Scrapper.Services
 {
     public class HtmlScraperService
     {
         private readonly PcPartsContext _pc_parts_Context;
+
         public HtmlScraperService(PcPartsContext pc_parts_Context)
         {
             _pc_parts_Context = pc_parts_Context;
         }
 
+        #region Database Helper Methods
+
         public async Task<Store> createOrFind_Store(string name, Uri url)
         {
-            var store = await _pc_parts_Context.Stores.FirstOrDefaultAsync(s=>s.Name == name);    
-
+            var store = await _pc_parts_Context.Stores.FirstOrDefaultAsync(s => s.Name == name);
             if (store == null)
             {
-                Store s = new Store {Name = name, URL = url};
+                Store s = new Store { Name = name, URL = url };
                 _pc_parts_Context.Add(s);
                 await _pc_parts_Context.SaveChangesAsync();
                 return s;
             }
-            
             return store;
         }
+
         public async Task<Product> createorFind_ScrapProduct(string search_name)
         {
-            var product = await _pc_parts_Context.Products.FirstOrDefaultAsync(p => p.Name == search_name);    //search for the name of the product
-
+            var product = await _pc_parts_Context.Products.FirstOrDefaultAsync(p => p.Name == search_name);
             if (product == null)
             {
-                Product p1  = new Product { Name = search_name };
+                Product p1 = new Product { Name = search_name };
                 _pc_parts_Context.Add(p1);
                 await _pc_parts_Context.SaveChangesAsync();
                 return p1;
-
             }
             return product;
         }
 
-        public async Task<ScrapedItem> createOrFind_ScrapItem(int s_id, int p_id, Uri url,string product_Name )
+        public async Task<ScrapedItem> createOrFind_ScrapItem(int s_id, int p_id, Uri url, string product_Name)
         {
-            var s_item = await _pc_parts_Context.ScrapedItems.FirstOrDefaultAsync(s => s.StoreId == s_id && s.Title == product_Name);
+            var s_item = await _pc_parts_Context.ScrapedItems
+                .FirstOrDefaultAsync(s => s.StoreId == s_id && s.Title == product_Name);
+
             if (s_item == null)
             {
-                ScrapedItem s1= new ScrapedItem { StoreId = s_id, ProductId = p_id, Url = url, Title = product_Name };
+                ScrapedItem s1 = new ScrapedItem
+                {
+                    StoreId = s_id,
+                    ProductId = p_id,
+                    Url = url,
+                    Title = product_Name
+                };
                 _pc_parts_Context.Add(s1);
                 await _pc_parts_Context.SaveChangesAsync();
                 return s1;
@@ -62,129 +65,206 @@ namespace PC_Parts_Scrapper.Services
             return s_item;
         }
 
-
         public async Task<PriceHistory> createOrFind_History(int _id, decimal _price)
         {
-            PriceHistory p1 = new PriceHistory {
+            PriceHistory p1 = new PriceHistory
+            {
                 ScrapedItemId = _id,
                 Price = _price,
-                CheckedAt = DateTimeOffset.UtcNow   // Convert your variable to UTC offset 0
+                CheckedAt = DateTimeOffset.UtcNow
             };
 
-             _pc_parts_Context.Add(p1);
-            await  _pc_parts_Context.SaveChangesAsync();
+            _pc_parts_Context.Add(p1);
+            await _pc_parts_Context.SaveChangesAsync();
             return p1;
         }
 
-        public string NormalizedString(string input)
+        private async Task<T> SafeEvaluateAsync<T>(IPage page, string script, T fallbackValue)
         {
-            return input.ToLower().Trim().Replace("-", " ");
+            try
+            {
+                return await page.EvaluateAsync<T>(script);
+            }
+            catch (PlaywrightException ex) when (ex.Message.Contains("Execution context was destroyed"))
+            {
+                Console.WriteLine("[Playwright Warning] Context destroyed during evaluate. Re-syncing page state...");
+                try
+                {
+                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions { Timeout = 5000 });
+                }
+                catch { /* Ignore timeout */ }
+                return fallbackValue;
+            }
+            catch
+            {
+                return fallbackValue;
+            }
         }
 
-
+        #endregion
 
         public async Task Czone(string link_url, string pattern)
-        {           
-            using var playwright = await Playwright.CreateAsync();        //here we initilize playwrite
-            await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false }); //launc using chromium
-            var page = await browser.NewPageAsync();        //open new page
-            await page.GotoAsync(link_url);    //navigate to the link
+        {
+            using var playwright = await Playwright.CreateAsync();
 
-            await page.WaitForSelectorAsync("a.product-title",
-            new PageWaitForSelectorOptions { Timeout = 30000 });   // 30 seconds, wait for a REAL title
+            // Store Cloudflare clearance cookies in local directory
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright_profile");
 
-            string html_con = await page.ContentAsync();                   //store the html in html
-
-            var doc = new HtmlDocument();          
-            doc.LoadHtml(html_con);     //load the html structure 
-
-            var productsNds = doc.DocumentNode.SelectNodes("//div[contains(@class,'content-wrapper')]");        //select the product full information
-
-            
-            if (productsNds == null)
+            // we Launch Persistent Context to bypass bot flags
+            var context = await playwright.Firefox.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Console.WriteLine("No product found");
-                return;
-            }
+                Headless = false, // Set to false so you can solve CF once if prompted
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 }
+            });
 
-            Uri link = new Uri("https://www.czone.com.pk");
+            var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
 
-            var currentStore = await createOrFind_Store("Czone", link);
+            // Mask automated webdriver property
+            await page.AddInitScriptAsync(@"
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            ");
 
-            //var existingProducts = await _pc_parts_Context.Products.ToListAsync(); // Fetch existing products from the database
-
-            //var exisitingPNames = from p in existingProducts 
-            //                      orderby p.Name.Length descending
-            //                      select p; // Get the names of existing products
-    
-            //string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
-                
-            foreach (var pro in productsNds)
+            try
             {
-                var name = pro.SelectSingleNode(".//a[contains(@class,'product-title')]");
-                string cpu_Name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "UNknown");       //select the product title
+                Console.WriteLine($"Navigating to CZone: {link_url}");
+                await page.GotoAsync(link_url, new PageGotoOptions { Timeout = 60000 });
 
-                Match match = Regex.Match(cpu_Name,pattern, RegexOptions.IgnoreCase);
+                // If Cloudflare challenge appears, pause so you can click it manually
+                string title = await page.TitleAsync();
 
-                if (match.Success) {
+                // FIX: Changed 'or' keyword to C# logical OR operator '||'
+                if (title.Contains("Just a moment") || title.Contains("Attention Required"))
+                {
+                    Console.WriteLine("\n=======================================================");
+                    Console.WriteLine("Cloudflare challenge detected!");
+                    Console.WriteLine("Please solve the Cloudflare box in the browser window.");
+                    Console.WriteLine("Waiting up to 60 seconds...");
+                    Console.WriteLine("=======================================================\n");
 
-                    var cpu = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");        //product price
-                    var url_node = pro.SelectSingleNode(".//div[contains(@class, 'content')]//a");
-                    string base_uri = "https://www.czone.com.pk";
-                    string href = url_node?.GetAttributeValue("href", "www.czone.com.pk") ?? "";
-                    Uri rel_url = new Uri(new Uri(base_uri), href);
+                    await page.WaitForSelectorAsync("a.product-title", new PageWaitForSelectorOptions { Timeout = 60000 });
+                    Console.WriteLine("Cloudflare bypassed! Clearance cookie saved to profile.");
+                }
+                else
+                {
+                    await page.WaitForSelectorAsync("a.product-title", new PageWaitForSelectorOptions { Timeout = 30000 });
+                }
 
-                    var baseProduct = match.Value.ToUpper();
-                    var product_Name = await createorFind_ScrapProduct(baseProduct);
-                    var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId ,rel_url, cpu_Name);
-                    Console.WriteLine($"CPU: {cpu_Name}");
+                // Smooth Human-like Incremental Scrolling
+                int currentHeight = await SafeEvaluateAsync<int>(page, "document.body.scrollHeight", 0);
+                int currentPosition = 0;
+                int scrollStep = 500;
 
+                while (currentPosition < currentHeight && currentHeight > 0)
+                {
+                    currentPosition += scrollStep;
 
-                    if (cpu != null && !string.IsNullOrWhiteSpace(cpu.InnerText))
-                    {                    //check if the cpu price is not null or empty
-                        var price = cpu.InnerText.Replace("Rs.", "").Replace(",", "").Trim();            //remove un necessary formating
-                        decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
-                        if (cpu_Price < 0)
+                    await SafeEvaluateAsync<object>(page, $"window.scrollTo(0, {currentPosition});", null);
+                    await page.WaitForTimeoutAsync(Random.Shared.Next(300, 600));
+
+                    int newHeight = await SafeEvaluateAsync<int>(page, "document.body.scrollHeight", currentHeight);
+                    if (newHeight > 0)
+                    {
+                        currentHeight = newHeight;
+                    }
+                }
+
+                // Grab fully expanded HTML DOM
+                string html_con = await page.ContentAsync();
+
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html_con);
+
+                var productsNds = doc.DocumentNode.SelectNodes("//div[contains(@class,'content-wrapper')]");
+
+                if (productsNds == null)
+                {
+                    Console.WriteLine("[Czone] No products found in DOM parsing.");
+                    return;
+                }
+
+                Console.WriteLine($"[Czone] Found {productsNds.Count} product elements. Processing database inserts...");
+
+                Uri link = new Uri("https://www.czone.com.pk");
+                var currentStore = await createOrFind_Store("Czone", link);
+
+                foreach (var pro in productsNds)
+                {
+                    var name = pro.SelectSingleNode(".//a[contains(@class,'product-title')]");
+                    string cpu_Name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
+
+                    Match match = Regex.Match(cpu_Name, pattern, RegexOptions.IgnoreCase);
+
+                    if (match.Success)
+                    {
+                        var url_node = pro.SelectSingleNode(".//div[contains(@class, 'content')]//a");
+                        string base_uri = "https://www.czone.com.pk";
+                        string href = url_node?.GetAttributeValue("href", "") ?? "";
+                        Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
+
+                        var baseProduct = match.Value.ToUpper();
+                        var product_Name = await createorFind_ScrapProduct(baseProduct);
+                        var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId, rel_url, cpu_Name);
+
+                        var priceNode = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");
+
+                        if (priceNode != null && !string.IsNullOrWhiteSpace(priceNode.InnerText))
                         {
-                            Console.WriteLine("Out Of Stock");
-                        }
-                        Console.WriteLine($"Price: {cpu_Price}");
-                        if (rel_url != null)
-                        {
-                            Console.WriteLine($"URL: {rel_url}");
-                        }
+                            var priceClean = priceNode.InnerText.Replace("Rs.", "").Replace(",", "").Trim();
 
-                        var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
+                            if (decimal.TryParse(priceClean, out decimal cpu_Price) && cpu_Price > 0)
+                            {
+                                Console.WriteLine($"[CZone] Saved: {cpu_Name} -> {cpu_Price} PKR");
+                                await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[CZone] Out of Stock / Unparseable Price: {cpu_Name}");
+                            }
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CZone Error] Scraping execution stopped: {ex.Message}");
+            }
+            finally
+            {
+                await context.CloseAsync();
+            }
         }
-
-
 
         public async Task ZahComputers(string url, string pattern)
         {
-            using var playwright = await Playwright.CreateAsync();   //create instance of playwright
-            await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false });      //use launch firefox 
-            var page = await browser.NewPageAsync();        //open new page
-            await page.GotoAsync(url);    //navigate to the link 
-            string html_con = await page.ContentAsync();                   //store the html in html
-            
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html_con);     //load the html structure
+            using var playwright = await Playwright.CreateAsync();
+            await using var browser = await playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false });
+            var page = await browser.NewPageAsync();
 
-            var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");        //select all product nodes 
-            if (products != null)
+            await page.GotoAsync(url);
+            string html_con = await page.ContentAsync();
+
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html_con);
+
+            var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");
+
+            // FIX: Added null check to prevent NullReferenceException
+            if (products == null)
             {
-                Console.WriteLine($"Found {products.Count} products on ZahComputers.");
+                Console.WriteLine("No products found on ZahComputers.");
+                return;
             }
-                Uri link = new Uri("https://www.zahcomputers.pk");
-                var curr_store = await createOrFind_Store("ZahComputers", link);
+
+            Console.WriteLine($"Found {products.Count} products on ZahComputers.");
+
+            Uri link = new Uri("https://www.zahcomputers.pk");
+            var curr_store = await createOrFind_Store("ZahComputers", link);
 
             foreach (var pro in products)
             {
                 var name = pro.SelectSingleNode(".//h3[contains(@class,'wd-entities-title')]/a");
-                string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "UNknown");       //select the product title)
+                string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
 
                 Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
                 if (match.Success)
@@ -192,35 +272,29 @@ namespace PC_Parts_Scrapper.Services
                     var price_node = pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
                     var url_node = pro.SelectSingleNode(".//a");
                     string base_uri = "https://www.zahcomputers.pk";
-                    string href = url_node?.GetAttributeValue("href", "www.zahcomputer.pk") ?? "";
-                    Uri rel_url = new Uri(new Uri(base_uri), href);
+                    string href = url_node?.GetAttributeValue("href", "") ?? "";
+                    Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
 
                     var baseProduct = match.Value.ToUpper();
                     var product_Name = await createorFind_ScrapProduct(baseProduct);
                     var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
-                    Console.WriteLine($"CPU: {pro_name}");
-
 
                     if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
-                    {                    //check if the cpu price is not null or empty
-                        var price = Regex.Replace(price_node.InnerText, @"[^\d,\.]","".Replace("Rs.", "").Replace(",", "").Trim());            //remove un necessary formating
+                    {
+                        // FIX: Clean regex replacement to extract numeric digits cleanly
+                        string cleanPriceText = Regex.Replace(price_node.InnerText, @"[^\d.]", "");
 
-                        decimal.TryParse(price, out decimal cpu_Price);                                 //convert to decimal
-                        if (cpu_Price < 0)
+                        if (decimal.TryParse(cleanPriceText, out decimal cpu_Price) && cpu_Price > 0)
                         {
-                            Console.WriteLine("Out Of Stock");
+                            Console.WriteLine($"[ZahComputers] Item: {pro_name} | Price: {cpu_Price} PKR");
+                            await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);
                         }
-                        Console.WriteLine($"Price: {cpu_Price}");
-                        if (rel_url != null)
+                        else
                         {
-                            Console.WriteLine($"URL: {rel_url}");
+                            Console.WriteLine($"[ZahComputers] Out of Stock / Unparseable Price: {pro_name}");
                         }
-
-                        var price_History = await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);        //create price history with 0 price for now
                     }
-
                 }
-
             }
         }
     }
