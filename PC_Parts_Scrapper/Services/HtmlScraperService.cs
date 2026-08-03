@@ -160,7 +160,12 @@ namespace PC_Parts_Scrapper.Services
                     currentPosition += scrollStep;
 
                     await SafeEvaluateAsync<object>(page, $"window.scrollTo(0, {currentPosition});", null);
-                    await page.WaitForTimeoutAsync(Random.Shared.Next(300, 600));
+
+                    await page.Mouse.WheelAsync(0, 500);
+
+                    await page.Mouse.MoveAsync(Random.Shared.Next(200, 500), Random.Shared.Next(200, 500));
+
+                    await page.WaitForTimeoutAsync(Random.Shared.Next(1000, 1800));
 
                     int newHeight = await SafeEvaluateAsync<int>(page, "document.body.scrollHeight", currentHeight);
                     if (newHeight > 0)
@@ -249,7 +254,7 @@ namespace PC_Parts_Scrapper.Services
 
             var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");
 
-            // FIX: Added null check to prevent NullReferenceException
+            // Add null check to prevent NullReferenceException
             if (products == null)
             {
                 Console.WriteLine("No products found on ZahComputers.");
@@ -281,7 +286,6 @@ namespace PC_Parts_Scrapper.Services
 
                     if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
                     {
-                        // FIX: Clean regex replacement to extract numeric digits cleanly
                         string cleanPriceText = Regex.Replace(price_node.InnerText, @"[^\d.]", "");
 
                         if (decimal.TryParse(cleanPriceText, out decimal cpu_Price) && cpu_Price > 0)
