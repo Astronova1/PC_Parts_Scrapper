@@ -6,3 +6,4 @@ obj/
 Dockerfile
 czone_debug.html
 PC_Parts_Scrapper/publish-out/
+playwright_profile/
