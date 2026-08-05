@@ -5,6 +5,8 @@ using PC_Parts_Scrapper.Models;
 using PC_Parts_Scrapper.ViewModels;
 namespace PC_Parts_Scrapper.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     public class ProductController : Controller
     {
         private readonly PcPartsContext _context;  //implement injecting context in the controller constructor to access the database
@@ -12,10 +14,7 @@ namespace PC_Parts_Scrapper.Controllers
         {
             _context = context;
         }
-        public IActionResult Index()
-        {
-            return View();
-        }
+
         [HttpGet]
         public async Task<IActionResult> getProducts()
         {
@@ -44,7 +43,7 @@ namespace PC_Parts_Scrapper.Controllers
             ).ToListAsync();
 
 
-            return View(query);
+            return Ok(query);
         }
     }
 }
