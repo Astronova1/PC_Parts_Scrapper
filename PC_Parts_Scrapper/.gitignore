@@ -7,3 +7,11 @@ Dockerfile
 czone_debug.html
 PC_Parts_Scrapper/publish-out/
 playwright_profile/
+
+# Node.js / React
+node_modules/
+dist/
+build/
+npm-debug.log*
+.env
+.env.local
