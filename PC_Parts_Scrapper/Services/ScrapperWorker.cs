@@ -13,33 +13,25 @@ namespace PC_Parts_Scrapper.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                using (var scope = _scopeFactory.CreateScope())
+                try
                 {
-                    var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>(); //this is scoped Db Context
-                    Console.WriteLine("ScrapperWorker created");
-                    var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();  //use Scrapper in the scope
-                    Console.WriteLine("Starting CZone Scrape...");
-
-                    var cpu_link = "https://www.czone.com.pk/processors-pakistan-ppt.85.aspx";  //CZone website link
-                    string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
-
-                    var gpu_link = "https://www.czone.com.pk/graphic-cards-pakistan-ppt.154.aspx";  //CZone gpu link
-                    string pattern_gpu = @"(RTX|GTX|RX)\s+\d{1,4}\s*(Ti|XT|XTX)?";
-
-                    await scraper.Czone(cpu_link, pattern);
-                    await scraper.Czone(gpu_link, pattern_gpu);
-                    Console.WriteLine("CZone Scrape Completed!");
-
-                    Console.WriteLine("Starting ZahComputers Scrape...");
-                    var zah_link_cpu = "https://zahcomputers.pk/category/processors/";  //ZahComputers website link
-                    var zah_link_gpu = "https://zahcomputers.pk/category/graphics-cards/";  //ZahComputers gpu link
-                    await scraper.ZahComputers(zah_link_cpu, pattern);
-                    await scraper.ZahComputers(zah_link_gpu, pattern_gpu);
-                    Console.WriteLine("ZahComputers Scrape Complete");
-
-                }  //the database scope ends here and the scope is disposed now
-                await Task.Delay(TimeSpan.FromHours(6), stoppingToken);   //run after 6 hours and shutdown if request by stoppingToken
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>(); //this is scoped Db Context 
+                        Console.WriteLine("ScrapperWorker created");
+                        var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();  //use Scrapper in the scope
+                        Console.WriteLine("Starting Scraping service");
+                        await scraper.ScrapStores();
+                    }  //the database scope ends here and the scope is disposed now
+                    Console.WriteLine("Scraping service completed");
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine($"Error in ScrapperWorker: {ex.Message}");
+                }
+                Console.WriteLine("ScrapperWorker waiting 6 hours before starting again");    
+                await Task.Delay(TimeSpan.FromHours(6), stoppingToken);  //wait for 6 hours before starting again
             }
-        } 
+        }
     }
 }
