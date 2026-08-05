@@ -3,6 +3,15 @@ using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Vite or Create React App URLs
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
@@ -16,9 +25,12 @@ builder.Services.AddHostedService<ScrapperWorker>();         //register backgrou
 builder.Services.AddTransient<HtmlScraperService>();        //create new instance of Scraper Service 
 
 // Add services to the container.
+builder.Services.AddControllers();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+app.UseCors("AllowReactApp");  
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -39,6 +51,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
+app.MapControllers();
 
 app.Run();
