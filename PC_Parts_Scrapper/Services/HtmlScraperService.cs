@@ -36,6 +36,7 @@ namespace PC_Parts_Scrapper.Services
             var product = await _pc_parts_Context.Products.FirstOrDefaultAsync(p => p.Name == search_name);
             if (product == null)
             {
+                Console.WriteLine($"[Database] Product '{search_name}' not found. Creating new entry.");
                 Product p1 = new Product { Name = search_name };
                 _pc_parts_Context.Add(p1);
                 await _pc_parts_Context.SaveChangesAsync();
@@ -51,6 +52,7 @@ namespace PC_Parts_Scrapper.Services
 
             if (s_item == null)
             {
+                Console.WriteLine($"[Database] Item '{product_Name}' not found. Creating new entrys");
                 ScrapedItem s1 = new ScrapedItem
                 {
                     StoreId = s_id,
@@ -103,6 +105,26 @@ namespace PC_Parts_Scrapper.Services
 
         #endregion
 
+        public async Task ScrapStores() 
+        {
+            var cpu_link = "https://www.czone.com.pk/processors-pakistan-ppt.85.aspx";  //CZone website link
+            string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
+
+            var gpu_link = "https://www.czone.com.pk/graphic-cards-pakistan-ppt.154.aspx";  //CZone gpu link
+            string pattern_gpu = @"(RTX|GTX|RX)\s+\d{1,4}\s*(Ti|XT|XTX)?";
+
+            await Czone(cpu_link, pattern);
+            await Czone(gpu_link, pattern_gpu);
+            Console.WriteLine("CZone Scrape Completed!");
+
+            Console.WriteLine("Starting ZahComputers Scrape...");
+            var zah_link_cpu = "https://zahcomputers.pk/category/processors/";  //ZahComputers website link
+            var zah_link_gpu = "https://zahcomputers.pk/category/graphics-cards/";  //ZahComputers gpu link
+            await ZahComputers(zah_link_cpu, pattern);
+            await ZahComputers(zah_link_gpu, pattern_gpu);
+            Console.WriteLine("ZahComputers Scrape Complete");
+        }
+
         public async Task Czone(string link_url, string pattern)
         {
             using var playwright = await Playwright.CreateAsync();
@@ -127,7 +149,6 @@ namespace PC_Parts_Scrapper.Services
                 Console.WriteLine($"Navigating to CZone: {link_url}");
                 await page.GotoAsync(link_url, new PageGotoOptions { Timeout = 60000 });
 
-                // If Cloudflare challenge appears, pause so you can click it manually
                 string title = await page.TitleAsync();
 
                 if (title.Contains("Just a moment") || title.Contains("Attention Required"))
