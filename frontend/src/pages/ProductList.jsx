@@ -51,6 +51,23 @@ export default function ProductList() {
                                         </tr>
                                     </thead>
                                 </table>
+
+                                {product.listings.map((listings,index) => (
+                                    <tr key={index}>
+                                        <td>{listings.storeName}</td>
+                                        <td>{listings.itemTitle}</td>
+                                        <td>{listings.latestPrice?.toLocaleString()?? "N/A"}</td>
+                                        <td><a 
+                                            href={listings.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            >
+                                            View Store
+                                            </a>
+                                        </td>
+                                    </tr>
+                                ))}
+
                                 </div>
                         ))}
                         </div>
