@@ -1,4 +1,5 @@
 import { useEffect,useState,} from "react";
+import "./ProductList.css";
 
 export default function ProductList() {
     const [products, setProducts] = useState([]);
@@ -33,15 +34,15 @@ export default function ProductList() {
     }
 
         return(
-            <div>
+            <div className="product-container">
                 {products.length == 0 ? (
                     <p>No Products Found</p>
                 ): (
-                    <div>
+                    <div className="product-list">
                         {products.map(product => (
-                            <div key={product.productId}>
-                                <h2>{product.name}</h2>
-                                <table>
+                            <div key={product.productId} className="product-card">
+                                <h2 className="product-title">{product.name}</h2>
+                                <table className="price-table">
                                     <thead>
                                         <tr>
                                             <th>Store</th>
@@ -50,23 +51,24 @@ export default function ProductList() {
                                             <th>Link</th>
                                         </tr>
                                     </thead>
-                                </table>
 
-                                {product.listings.map((listings,index) => (
+                                {product.listings.map((listing,index) => (
                                     <tr key={index}>
-                                        <td>{listings.storeName}</td>
-                                        <td>{listings.itemTitle}</td>
-                                        <td>{listings.latestPrice?.toLocaleString()?? "N/A"}</td>
+                                        <td className="store-name">{listing.storeName}</td>
+                                        <td>{listing.itemTitle}</td>
+                                        <td className="price-text">Rs. {listing.latestPrice?.toLocaleString()?? "N/A"}</td>
                                         <td><a 
-                                            href={listings.url}
+                                            href={listing.url}
                                             target="_blank"
                                             rel="noreferrer"
+                                            className="store-link"
                                             >
                                             View Store
                                             </a>
                                         </td>
                                     </tr>
                                 ))}
+                                 </table>
 
                                 </div>
                         ))}
