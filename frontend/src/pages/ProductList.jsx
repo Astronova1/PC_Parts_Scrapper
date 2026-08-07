@@ -1,22 +1,19 @@
 import { useEffect,useState,} from "react";
 
 export default function ProductList() {
-    const [Products, setProducts] = useState([]);
-    const [Loading, setLoading] = useState(true);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null)
 
     useEffect(()=> {
-        const fetchData = async() => {
+        const fetchData = async() => {      //this function get json data from the backend
                 try{setLoading(true);
-                const response = await Fetch("/api/getProducts")
+                const response = await fetch("https://localhost:50671/api/product")
                 if(!response.ok){
                     throw new Error(`HTTP error! Status: ${response.status}`)
                 }
                 const result = await response.json();
-                const {Products} = result
-                if (response.ok){
-                    setProducts(result)
-                }
+                    setProducts(result)     
               }catch(err){
                   console.error("Error Fetching data: ", err)
                   setError(err.message);
@@ -24,14 +21,32 @@ export default function ProductList() {
                 setLoading(false)
               }
         }
+        fetchData();
     },[])
 
-    if (Loading)
+    if (loading)
         {
             return <div>Loading hardware....</div>
-        }
+    }
+    if (error) {
+        return <div> Error: {error} </div>
+    }
 
         return(
-
+            <div>
+                {products.length == 0 ? (
+                    <p>No Products Found</p>
+                ): (
+                    <div>
+                        {products.map(product => (
+                            <div key={product.productId}>
+                                <h2>{product.name}</h2>
+                                </div>
+                        ))}
+                        </div>
+                )
+                
+                }
+            </div> 
   );
 }
