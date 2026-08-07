@@ -7,7 +7,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Vite or Create React App URLs
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5173") // Vite or Create React App URLs
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
