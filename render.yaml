@@ -5,7 +5,7 @@ services:
     runtime: docker
     dockerfilePath: ./PC_Parts_Scrapper/Dockerfile
     dockerContext: ./PC_Parts_Scrapper
-    plan: starter # Playwright requires at least Starter plan (512MB+ RAM)
+    plan: starter
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
@@ -26,11 +26,11 @@ services:
         fromService:
           type: web
           name: pc-parts-backend
-          property: url
+          property: host
 
 databases:
   # 3. PostgreSQL Database
   - name: pc-parts-db
     databaseName: pc_parts_db
-    user: postgres
+    user: pc_parts_user
     plan: free
