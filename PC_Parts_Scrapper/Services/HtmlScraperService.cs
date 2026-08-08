@@ -136,7 +136,7 @@ namespace PC_Parts_Scrapper.Services
             {
                 Headless = !isDevelopment,
                 UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
-                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 }
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
                 FirefoxUserPrefs = new Dictionary<string, object>
                 {
                     { "security.sandbox.content.level", 0 }
