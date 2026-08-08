@@ -5,7 +5,7 @@ services:
     runtime: docker
     dockerfilePath: ./PC_Parts_Scrapper/Dockerfile
     dockerContext: ./PC_Parts_Scrapper
-    plan: starter
+    plan: free
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
