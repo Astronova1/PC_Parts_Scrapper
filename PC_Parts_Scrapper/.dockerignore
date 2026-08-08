@@ -1,0 +1,12 @@
+bin/
+obj/
+# Block downloaded packages
+node_modules/
+dist/
+
+# Block secrets and local settings
+.env
+.env.local
+
+# Block system files
+.DS_Store

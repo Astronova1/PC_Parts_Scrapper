@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database Service
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: pcparts_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. .NET 8 Backend + Playwright Scraper Service
+  backend:
+    build:
+      context: ./PC_Parts_Scrapper
+      dockerfile: Dockerfile
+    container_name: pcparts_backend
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # Overrides appsettings.json ConnectionStrings:DefaultConnection
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persists Cloudflare clearance cookies across container restarts
+      - playwright_profile:/app/playwright_profile
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+  # 3. React Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pcparts_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+# Persistent Named Volumes
+volumes:
+  postgres_data:
+  playwright_profile:
