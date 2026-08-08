@@ -1,0 +1,36 @@
+services:
+  # 1. .NET 8 Backend + Playwright Scraper (Docker)
+  - type: web
+    name: pc-parts-backend
+    runtime: docker
+    dockerfilePath: ./PC_Parts_Scrapper/Dockerfile
+    dockerContext: ./PC_Parts_Scrapper
+    plan: starter # Playwright requires at least Starter plan (512MB+ RAM)
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pc-parts-db
+          property: connectionString
+
+  # 2. React Frontend (Static Site)
+  - type: web
+    name: pc-parts-frontend
+    runtime: static
+    buildCommand: npm run build
+    staticPublishPath: ./dist
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: pc-parts-backend
+          property: url
+
+databases:
+  # 3. PostgreSQL Database
+  - name: pc-parts-db
+    databaseName: pc_parts_db
+    user: postgres
+    plan: free
