@@ -3,7 +3,7 @@ services:
   - type: web
     name: pc-parts-backend
     runtime: docker
-    dockerfilePath: ./PC_Parts_Scrapper/PC_Parts_Scrapper/Dockerfile
+    dockerfilePath: Dockerfile
     dockerContext: ./PC_Parts_Scrapper/PC_Parts_Scrapper
     plan: free
     envVars:
