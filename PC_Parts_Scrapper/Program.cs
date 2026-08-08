@@ -29,7 +29,13 @@ builder.Services.AddControllers();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
-app.UseCors("AllowReactApp");  
+app.UseCors("AllowReactApp");
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>();
+    db.Database.Migrate(); // Auto-creates database & tables on container startup
+}
 
 
 // Configure the HTTP request pipeline.
@@ -44,13 +50,14 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthorization();
-
-app.MapStaticAssets();
+//DOTNET 10 / 9 feature
+//app.MapStaticAssets();
+app.UseStaticFiles(); // Serve static files from wwwroot
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+//    .WithStaticAssets();  DOTNET 10 / 9 feature
 app.MapControllers();
 
 app.Run();
