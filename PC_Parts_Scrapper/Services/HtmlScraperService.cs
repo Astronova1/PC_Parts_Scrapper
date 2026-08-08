@@ -130,10 +130,11 @@ namespace PC_Parts_Scrapper.Services
             using var playwright = await Playwright.CreateAsync();
 
             string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright_profile");
+            bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
 
             var context = await playwright.Firefox.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false, // Set to false so you can solve CF once if prompted
+                Headless = !isDevelopment,
                 UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
                 ViewportSize = new ViewportSize { Width = 1920, Height = 1080 }
             });
