@@ -9,7 +9,8 @@ export default function ProductList() {
     useEffect(()=> {
         const fetchData = async() => {      //this function get json data from the backend
                 try{setLoading(true);
-                const response = await fetch("https://localhost:50671/api/product")
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+                const response = await fetch(`${API_URL}/api/product`)
                 if(!response.ok){
                     throw new Error(`HTTP error! Status: ${response.status}`)
                 }
