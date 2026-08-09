@@ -18,15 +18,13 @@ services:
   - type: web
     name: pc-parts-frontend
     runtime: static
-    buildCommand: npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     rootDir: frontend
     envVars:
       - key: VITE_API_URL
-        fromService:
+        value: pc-parts-backend-f4ty.onrender.com
           type: web
-          name: pc-parts-backend
-          property: host
 
 databases:
   # 3. PostgreSQL Database
