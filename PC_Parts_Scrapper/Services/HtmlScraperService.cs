@@ -261,70 +261,101 @@ namespace PC_Parts_Scrapper.Services
 
         public async Task ZahComputers(string url, string pattern)
         {
-            using var playwright = await Playwright.CreateAsync();
+            //using var playwright = await Playwright.CreateAsync();
 
-            // Store profile session if needed, similar to CZone
-            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright_profile");
-            bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
-            var context = await playwright.Firefox.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            //// Store profile session if needed, similar to CZone
+            //string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright_profile");
+            //bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+            //var context = await playwright.Firefox.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            //{
+            //    Headless = !isDevelopment,
+            //    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+            //    ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+            //    Locale = "en-US",
+            //    TimezoneId = "Asia/Karachi",
+            //    FirefoxUserPrefs = new Dictionary<string, object>
+            //    {
+            //        { "dom.webdriver.enabled", false },
+            //        { "useAutomationExtension", false }
+            //    }
+            //});
+
+            //var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
+
+            //try
+            //{
+            //    Console.WriteLine($"[ZahComputers] Navigating to: {url}");
+            //    await page.GotoAsync(url, new PageGotoOptions
+            //    {
+            //        Timeout = 60000,
+            //        WaitUntil = WaitUntilState.DOMContentLoaded
+            //    });
+            //    await page.WaitForTimeoutAsync(5000);
+
+            //    string pageTitle = await page.TitleAsync();
+            //    Console.WriteLine($"[ZahComputers] Page Title: '{pageTitle}'"); 
+
+            //    await page.WaitForSelectorAsync("div.product-element-bottom", new PageWaitForSelectorOptions { Timeout = 30000 });
+
+            //    string loadMoreSelector = ".wd-load-more a, .autoload-btn";
+            //    int maxClicks = 20; 
+            //    int clickCount = 0;
+
+            //    Console.WriteLine("[ZahComputers] Checking for 'Load More' button...");
+
+            //    while (clickCount < maxClicks)
+            //    {
+            //        var loadMoreButton = page.Locator(loadMoreSelector);
+            //        if (await loadMoreButton.CountAsync() > 0 && await loadMoreButton.IsVisibleAsync())
+            //        {
+            //            Console.WriteLine($"[ZahComputers] Clicking 'Load More' (Attempt {clickCount + 1})...");
+
+            //            await loadMoreButton.ScrollIntoViewIfNeededAsync();
+
+            //            await loadMoreButton.ClickAsync();
+            //            clickCount++;
+
+            //            await page.WaitForTimeoutAsync(2500);
+            //        }
+            //        else
+            //        {
+            //            Console.WriteLine("[ZahComputers] All products loaded! (No more 'Load More' button found).");
+            //            break;
+            //        }
+            //    }
+
+            //    string html_con = await page.ContentAsync();
+
+            Console.WriteLine($"[ZahComputers] Asking FlareSolverr to bypass Cloudflare for: {url}");
+
+            string flareSolverrUrl = "http://flaresolverr:8191/v1";
+
+            var payload = new
             {
-                Headless = !isDevelopment,
-                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
-                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
-                Locale = "en-US",
-                TimezoneId = "Asia/Karachi",
-                FirefoxUserPrefs = new Dictionary<string, object>
-                {
-                    { "dom.webdriver.enabled", false },
-                    { "useAutomationExtension", false }
-                }
-            });
+                cmd = "request.get",
+                url = url,
+                maxTimeout = 60000 
+            };
 
-            var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
+            string jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
+            using var client = new HttpClient();
+            var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
             try
             {
-                Console.WriteLine($"[ZahComputers] Navigating to: {url}");
-                await page.GotoAsync(url, new PageGotoOptions
+                var response = await client.PostAsync(flareSolverrUrl, content);
+                string responseString = await response.Content.ReadAsStringAsync();
+
+                using var jsonDoc = System.Text.Json.JsonDocument.Parse(responseString);
+                var root = jsonDoc.RootElement;
+
+                if (root.GetProperty("status").GetString() != "ok")
                 {
-                    Timeout = 60000,
-                    WaitUntil = WaitUntilState.DOMContentLoaded
-                });
-                await page.WaitForTimeoutAsync(5000);
-
-                string pageTitle = await page.TitleAsync();
-                Console.WriteLine($"[ZahComputers] Page Title: '{pageTitle}'"); 
-
-                await page.WaitForSelectorAsync("div.product-element-bottom", new PageWaitForSelectorOptions { Timeout = 30000 });
-
-                string loadMoreSelector = ".wd-load-more a, .autoload-btn";
-                int maxClicks = 20; 
-                int clickCount = 0;
-
-                Console.WriteLine("[ZahComputers] Checking for 'Load More' button...");
-
-                while (clickCount < maxClicks)
-                {
-                    var loadMoreButton = page.Locator(loadMoreSelector);
-                    if (await loadMoreButton.CountAsync() > 0 && await loadMoreButton.IsVisibleAsync())
-                    {
-                        Console.WriteLine($"[ZahComputers] Clicking 'Load More' (Attempt {clickCount + 1})...");
-
-                        await loadMoreButton.ScrollIntoViewIfNeededAsync();
-
-                        await loadMoreButton.ClickAsync();
-                        clickCount++;
-
-                        await page.WaitForTimeoutAsync(2500);
-                    }
-                    else
-                    {
-                        Console.WriteLine("[ZahComputers] All products loaded! (No more 'Load More' button found).");
-                        break;
-                    }
+                    Console.WriteLine($"[ZahComputers ERROR] FlareSolverr failed: {responseString}");
+                    return;
                 }
 
-                string html_con = await page.ContentAsync();
+                string html_con = root.GetProperty("solution").GetProperty("response").GetString();
 
                 var doc = new HtmlDocument();
                 doc.LoadHtml(html_con);
@@ -381,10 +412,10 @@ namespace PC_Parts_Scrapper.Services
             {
                 Console.WriteLine($"[ZahComputers Error] Scraping execution failed: {ex.Message}");
             }
-            finally
-            {
-                await context.CloseAsync();
-            }
+            //finally
+            //{
+            //    await context.CloseAsync();
+            //}
         }
     }
 }
