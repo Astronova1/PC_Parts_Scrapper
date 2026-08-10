@@ -285,8 +285,15 @@ namespace PC_Parts_Scrapper.Services
             try
             {
                 Console.WriteLine($"[ZahComputers] Navigating to: {url}");
-                await page.GotoAsync(url, new PageGotoOptions { Timeout = 60000 });
-                await page.WaitForTimeoutAsync(3000);
+                await page.GotoAsync(url, new PageGotoOptions
+                {
+                    Timeout = 60000,
+                    WaitUntil = WaitUntilState.DOMContentLoaded
+                });
+                await page.WaitForTimeoutAsync(5000);
+
+                string pageTitle = await page.TitleAsync();
+                Console.WriteLine($"[ZahComputers] Page Title: '{pageTitle}'"); 
 
                 await page.WaitForSelectorAsync("div.product-element-bottom", new PageWaitForSelectorOptions { Timeout = 30000 });
 
