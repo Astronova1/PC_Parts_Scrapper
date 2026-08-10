@@ -40,6 +40,18 @@ services:
       postgres-db:
         condition: service_healthy
 
+    # 4. FlareSolverr (Cloudflare Bypass)
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: always
+    environment:
+      - LOG_LEVEL=info
+      - LOG_HTML=false
+      - CAPTCHA_SOLVER=none
+    ports:
+      - "8191:8191"
+
   # 3. React Frontend Service
   frontend:
     build:
