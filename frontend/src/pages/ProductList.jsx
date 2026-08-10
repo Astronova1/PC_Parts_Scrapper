@@ -54,20 +54,22 @@ export default function ProductList() {
                                     </thead>
 
                                 {product.listings.map((listing,index) => (
-                                    <tr key={index}>
-                                        <td className="store-name">{listing.storeName}</td>
-                                        <td>{listing.itemTitle}</td>
-                                        <td className="price-text">Rs. {listing.latestPrice?.toLocaleString()?? "N/A"}</td>
-                                        <td><a 
-                                            href={listing.url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="store-link"
-                                            >
-                                            View Store
-                                            </a>
-                                        </td>
-                                    </tr>
+                                    <tbody>
+                                        <tr key={index}>
+                                            <td className="store-name">{listing.storeName}</td>
+                                            <td>{listing.itemTitle}</td>
+                                            <td className="price-text">Rs. {listing.latestPrice?.toLocaleString()?? "N/A"}</td>
+                                            <td><a 
+                                                href={listing.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="store-link"
+                                                >
+                                                View Store
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
                                 ))}
                                  </table>
 
