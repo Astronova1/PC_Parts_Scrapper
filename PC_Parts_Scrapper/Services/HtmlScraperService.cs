@@ -157,12 +157,10 @@ namespace PC_Parts_Scrapper.Services
                 string title = await page.TitleAsync();
 
                 if (title.Contains("Just a moment") || title.Contains("Attention Required"))
-                {
-                    Console.WriteLine("\n=======================================================");
+                { 
                     Console.WriteLine("Cloudflare challenge detected!");
                     Console.WriteLine("Please solve the Cloudflare box in the browser window.");
                     Console.WriteLine("Waiting up to 60 seconds...");
-                    Console.WriteLine("=======================================================\n");
 
                     await page.WaitForSelectorAsync("a.product-title", new PageWaitForSelectorOptions { Timeout = 60000 });
                     Console.WriteLine("Cloudflare bypassed! Clearance cookie saved to profile.");
@@ -267,9 +265,10 @@ namespace PC_Parts_Scrapper.Services
 
             // Store profile session if needed, similar to CZone
             string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright_profile");
+            bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
             var context = await playwright.Firefox.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false,
+                Headless = !isDevelopment,
                 UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
                 ViewportSize = new ViewportSize { Width = 1920, Height = 1080 }
             });
