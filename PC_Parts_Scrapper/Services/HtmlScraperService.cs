@@ -270,7 +270,14 @@ namespace PC_Parts_Scrapper.Services
             {
                 Headless = !isDevelopment,
                 UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
-                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 }
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+                Locale = "en-US",
+                TimezoneId = "Asia/Karachi",
+                FirefoxUserPrefs = new Dictionary<string, object>
+                {
+                    { "dom.webdriver.enabled", false },
+                    { "useAutomationExtension", false }
+                }
             });
 
             var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
@@ -279,6 +286,7 @@ namespace PC_Parts_Scrapper.Services
             {
                 Console.WriteLine($"[ZahComputers] Navigating to: {url}");
                 await page.GotoAsync(url, new PageGotoOptions { Timeout = 60000 });
+                await page.WaitForTimeoutAsync(3000);
 
                 await page.WaitForSelectorAsync("div.product-element-bottom", new PageWaitForSelectorOptions { Timeout = 30000 });
 
