@@ -68,6 +68,7 @@ export default function ProductList() {
                                                 View Store
                                                 </a>
                                             </td>
+                                                <td className="price-lastcheck">{ new Date (listing.CheckedAt).toLocaleString() ?? "NA"}</td>
                                         </tr>
                                     </tbody>
                                 ))}

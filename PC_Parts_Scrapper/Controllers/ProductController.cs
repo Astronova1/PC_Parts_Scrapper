@@ -26,17 +26,20 @@ namespace PC_Parts_Scrapper.Controllers
                 {
                     ProductId = p.ProductId,
                     Name = p.Name,
-
                     //
                     Listings = p.ScrapedItems.Select(si => new StoreListingViewModel
                     {
                         StoreName = si.Store!.Name,        // which store
                         Url = si.Url,                            // that store's link
-                        ItemTitle = si.Title,                    // that store's title for this product
+                        ItemTitle = si.Title,                    // that store's title for this produc
                                                                      // latest price for THIS store's listing (newest snapshot first)
                         LatestPrice = si.PriceHistories
                                         .OrderByDescending(ph => ph.CheckedAt)
                                         .Select(ph => ph.Price)
+                                        .FirstOrDefault(),
+                        CheckedAt = si.PriceHistories
+                                        .OrderByDescending (ph => ph.CheckedAt)
+                                        .Select(ph => ph.CheckedAt)
                                         .FirstOrDefault()
                     }).ToList()
                 }
