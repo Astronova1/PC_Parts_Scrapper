@@ -6,5 +6,6 @@
         public Uri? Url { get; set; }
         public decimal LatestPrice { get; set; }
         public string ItemTitle { get; set; } = string.Empty;
+        public DateTimeOffset? CheckedAt { get; set; }
     }
 }
