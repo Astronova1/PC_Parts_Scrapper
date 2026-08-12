@@ -10,10 +10,13 @@ namespace PC_Parts_Scrapper.Services
     public class HtmlScraperService
     {
         private readonly PcPartsContext _pc_parts_Context;
+        private readonly IConfiguration _configuration;
 
-        public HtmlScraperService(PcPartsContext pc_parts_Context)
+
+        public HtmlScraperService(PcPartsContext pc_parts_Context, IConfiguration configuration)
         {
             _pc_parts_Context = pc_parts_Context;
+            _configuration = configuration;
         }
 
         #region Database Helper Methods
@@ -328,7 +331,7 @@ namespace PC_Parts_Scrapper.Services
 
             Console.WriteLine($"[ZahComputers] Asking FlareSolverr to bypass Cloudflare for: {url}");
 
-            string flareSolverrUrl = "http://flaresolverr:8191/v1";
+            string flareSolverrUrl = _configuration["FlareSolverr:BaseUrl"] ?? "http://localhost:8191/v1";
 
             var payload = new
             {
