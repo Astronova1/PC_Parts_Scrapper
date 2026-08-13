@@ -31,6 +31,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       # Overrides appsettings.json ConnectionStrings:DefaultConnection
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ASPNETCORE_ENVIRONMENT=Production
+      - FlareSolverr__BaseUrl=http://flaresolverr:8191/v1
     ports:
       - "8080:8080"
     volumes:
@@ -47,8 +49,6 @@ services:
       - LOG_LEVEL=info
       - LOG_HTML=false
       - CAPTCHA_SOLVER=none
-      - ASPNETCORE_ENVIRONMENT=Production
-      - FlareSolverr__BaseUrl=http://flaresolverr:8191/v1
     ports:
       - "8191:8191"
 
