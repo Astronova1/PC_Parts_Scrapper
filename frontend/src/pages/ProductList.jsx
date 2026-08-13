@@ -34,53 +34,59 @@ export default function ProductList() {
         return <div> Error: {error} </div>
     }
 
-        return(
-            <div className="product-container">
-                {products.length == 0 ? (
-                    <p>No Products Found</p>
-                ): (
+        return (
+                <div className="product-container">
+                    {products.length === 0 ? (
+                    <p className="no-products">No Products Found</p>
+                    ) : (
                     <div className="product-list">
                         {products.map(product => (
-                            <div key={product.productId} className="product-card">
-                                <h2 className="product-title">{product.name}</h2>
-                                <table className="price-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Store</th>
-                                            <th>Item Listing</th>
-                                            <th>Price (PKR)</th>
-                                            <th>Link</th>
-                                            <th>Last Checked</th>
-                                        </tr>
-                                    </thead>
+                        <article key={product.productId} className="product-card">
+                            <h2 className="product-title">{product.name}</h2>
+                            <div className="listings">
+                            <div className="listing-header">
+                                <span>Store</span>
+                                <span>Item Listing</span>
+                                <span>Price (PKR)</span>
+                                <span>Link</span>
+                                <span>Last Checked</span>
+                            </div>
 
-                                {product.listings.map((listing,index) => (
-                                    <tbody>
-                                        <tr key={index}>
-                                            <td className="store-name">{listing.storeName}</td>
-                                            <td>{listing.itemTitle}</td>
-                                            <td className="price-text">Rs. {listing.latestPrice?.toLocaleString()?? "N/A"}</td>
-                                            <td><a 
-                                                href={listing.url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="store-link"
-                                                >
-                                                View Store
-                                                </a>
-                                            </td>
-                                                <td className="price-lastcheck">{ new Date (listing.checkedAt).toLocaleString() ?? "NA"}</td>
-                                        </tr>
-                                    </tbody>
-                                ))}
-                                 </table>
-
+                            {product.listings.map((listing, index) => (
+                                <div
+                                className="listing-row"
+                                key={listing.listingId ?? `${listing.storeName}-${index}`}
+                                >
+                                <div className="listing-cell store-name" data-label="Store">
+                                    {listing.storeName}
                                 </div>
+                                <div className="listing-cell item-title" data-label="Item Listing">
+                                    {listing.itemTitle}
+                                </div>
+                                <div className="listing-cell price-text" data-label="Price (PKR)">
+                                    Rs. {listing.latestPrice != null ? listing.latestPrice.toLocaleString() : "N/A"}
+                                </div>
+                                <div className="listing-cell link-cell" data-label="Link">
+                                    <a
+                                    href={listing.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="store-link"
+                                    >
+                                    View Store
+                                    </a>
+                                </div>
+                                <div className="listing-cell last-check" data-label="Last Checked">
+                                    {listing.checkedAt
+                                    ? new Date(listing.checkedAt).toLocaleString()
+                                    : "N/A"}
+                                </div>
+                                </div>
+                            ))}
+                            </div>
+                        </article>
                         ))}
-                        </div>
-                )
-                
-                }
-            </div> 
-  );
-}
+                    </div>
+                    )}
+                </div>
+                );}

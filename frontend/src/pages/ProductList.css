@@ -1,104 +1,188 @@
 .product-container {
-    padding: 20px;
-    font-family: Arial, sans-serif;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  color: #e0e0e0;
+  min-height: 100vh;
 }
 
 .product-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .product-card {
-    border: 1px solid #444; /* Darkened slightly to match your theme */
-    padding: 15px;
-    border-radius: 8px;
-    background-color: #1e1e24; /* Match dark theme if needed */
+  border: 1px solid #444;
+  border-radius: 12px;
+  background-color: #1e1e24;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .product-title {
-    margin: 0 0 15px 0;
-    color: #e0e0e0;
-    text-align: center;
+  margin: 0;
+  padding: 16px;
+  color: #fff;
+  text-align: center;
+  background-color: #25252e;
+  border-bottom: 1px solid #444;
+  font-size: 1.25rem;
 }
 
-.price-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
+.listings {
+  display: flex;
+  flex-direction: column;
 }
 
-.price-table tr {
-    display: table-row;
-}
-.price-table th, .price-table td {
-    display: table-cell;
-    padding: 10px 8px;
-    word-wrap: break-word; 
+.listing-header,
+.listing-row {
+  display: grid;
+  grid-template-columns: 1.1fr 2.4fr 1fr 0.9fr 1.3fr;
+  align-items: center;
 }
 
-.price-table th {
-    background-color: #f4f4f4;
-    color: #333;
-    text-align: left;
+.listing-header {
+  background-color: #2b2b35;
+  color: #b0b0b0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 12px;
+  border-bottom: 1px solid #444;
 }
 
-.price-table td {
-    border-bottom: 1px solid #333;
-    vertical-align: middle;
+.listing-row {
+  padding: 12px;
+  border-bottom: 1px solid #333;
+  transition: background-color 0.15s ease;
 }
 
-
-.price-table th:nth-child(1),
-.price-table td:nth-child(1) {
-    width: 15%; 
+.listing-row:last-child {
+  border-bottom: none;
 }
 
-
-.price-table th:nth-child(2),
-.price-table td:nth-child(2) {
-    width: 40%; 
+.listing-row:hover {
+  background-color: #26262f;
 }
 
-
-.price-table th:nth-child(3),
-.price-table td:nth-child(3) {
-    width: 15%; 
-}
-
-.price-table th:nth-child(4),
-.price-table td:nth-child(4) {
-    width: 15%; 
-    text-align: center;
-}
-
-.price-table th:nth-child(5),
-.price-table td:nth-child(5) {
-    width: 15%; 
-    text-align: right;
+.listing-cell {
+  padding: 6px 10px;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .store-name {
-    font-weight: bold;
-    color: #fff;
+  font-weight: 700;
+  color: #fff;
+}
+
+.item-title {
+  color: #d0d0d0;
+  line-height: 1.4;
 }
 
 .price-text {
-    color: #00ff00;
-    font-weight: bold;
+  color: #4ade80;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.link-cell {
+  text-align: center;
 }
 
 .store-link {
-    color: #3b82f6; 
-    text-decoration: none;
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 600;
 }
 
 .store-link:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
-.price-lastcheck {
+.last-check {
+  text-align: right;
+  color: #a0aec0;
+  font-size: 0.85rem;
   white-space: nowrap;
-  font-size: 0.85rem; 
-  color: #a0aec0;   
+}
+
+@media (max-width: 720px) {
+  .product-container {
+    padding: 12px;
+  }
+
+  .product-list {
+    gap: 16px;
+  }
+
+  .listing-header {
+    display: none; 
+  }
+
+  .listing-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "store price"
+      "item item"
+      "link lastcheck";
+    gap: 8px 16px;
+    padding: 14px 12px;
+  }
+
+  .store-name {
+    grid-area: store;
+  }
+
+  .price-text {
+    grid-area: price;
+    text-align: right;
+  }
+
+  .item-title {
+    grid-area: item;
+  }
+
+  .link-cell {
+    grid-area: link;
+    text-align: left;
+  }
+
+  .last-check {
+    grid-area: lastcheck;
+    text-align: right;
+  }
+
+  /* Add visible labels on mobile */
+  .listing-row .listing-cell::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin-bottom: 4px;
+  }
+}
+
+@media (max-width: 420px) {
+  .listing-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "store"
+      "price"
+      "item"
+      "link"
+      "lastcheck";
+  }
+
+  .price-text,
+  .last-check {
+    text-align: left;
+  }
 }
