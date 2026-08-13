@@ -39,8 +39,6 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
-
-    # 4. FlareSolverr (Cloudflare Bypass)
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
@@ -49,6 +47,8 @@ services:
       - LOG_LEVEL=info
       - LOG_HTML=false
       - CAPTCHA_SOLVER=none
+      - ASPNETCORE_ENVIRONMENT=Production
+      - FlareSolverr__BaseUrl=http://flaresolverr:8191/v1
     ports:
       - "8191:8191"
 
