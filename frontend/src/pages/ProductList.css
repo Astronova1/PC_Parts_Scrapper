@@ -1,5 +1,3 @@
-/* ProductList.css */
-
 .product-container {
     padding: 20px;
     font-family: Arial, sans-serif;
@@ -24,21 +22,19 @@
     text-align: center;
 }
 
-/* --- THE TABLE FIX --- */
 .price-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed; /* Forces strict alignment between th and td */
+    table-layout: fixed;
 }
 
-/* Force standard table display in case global CSS broke it */
 .price-table tr {
     display: table-row;
 }
 .price-table th, .price-table td {
     display: table-cell;
     padding: 10px 8px;
-    word-wrap: break-word; /* Prevents long titles from overflowing */
+    word-wrap: break-word; 
 }
 
 .price-table th {
@@ -52,40 +48,43 @@
     vertical-align: middle;
 }
 
-/* --- COLUMN WIDTHS --- */
-/* 1st Column: Store */
+
 .price-table th:nth-child(1),
 .price-table td:nth-child(1) {
     width: 15%; 
 }
 
-/* 2nd Column: Item Listing (Needs the most space) */
+
 .price-table th:nth-child(2),
 .price-table td:nth-child(2) {
-    width: 55%; 
+    width: 40%; 
 }
 
-/* 3rd Column: Price */
+
 .price-table th:nth-child(3),
 .price-table td:nth-child(3) {
     width: 15%; 
 }
 
-/* 4th Column: Link */
 .price-table th:nth-child(4),
 .price-table td:nth-child(4) {
     width: 15%; 
-    text-align: right; /* Aligns the "View Store" link to the far right edge */
+    text-align: center;
 }
 
-/* --- TEXT STYLING --- */
+.price-table th:nth-child(5),
+.price-table td:nth-child(5) {
+    width: 15%; 
+    text-align: right;
+}
+
 .store-name {
     font-weight: bold;
     color: #fff;
 }
 
 .price-text {
-    color: #00ff00; /* Bright green to match your screenshot */
+    color: #00ff00;
     font-weight: bold;
 }
 
@@ -96,4 +95,10 @@
 
 .store-link:hover {
     text-decoration: underline;
+}
+
+.price-lastcheck {
+  white-space: nowrap;
+  font-size: 0.85rem; 
+  color: #a0aec0;   
 }

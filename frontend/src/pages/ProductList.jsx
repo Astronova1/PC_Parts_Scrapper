@@ -50,6 +50,7 @@ export default function ProductList() {
                                             <th>Item Listing</th>
                                             <th>Price (PKR)</th>
                                             <th>Link</th>
+                                            <th>Last Checked</th>
                                         </tr>
                                     </thead>
 
@@ -68,7 +69,7 @@ export default function ProductList() {
                                                 View Store
                                                 </a>
                                             </td>
-                                                <td className="price-lastcheck">{ new Date (listing.CheckedAt).toLocaleString() ?? "NA"}</td>
+                                                <td className="price-lastcheck">{ new Date (listing.checkedAt).toLocaleString() ?? "NA"}</td>
                                         </tr>
                                     </tbody>
                                 ))}
