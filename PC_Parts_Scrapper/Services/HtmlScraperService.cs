@@ -4,6 +4,7 @@ using Microsoft.Playwright;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Models;
 using System.Text.RegularExpressions;
+using System.Net.Http.Json;
 
 namespace PC_Parts_Scrapper.Services
 {
@@ -264,71 +265,6 @@ namespace PC_Parts_Scrapper.Services
 
         public async Task ZahComputers(string url, string pattern)
         {
-            //using var playwright = await Playwright.CreateAsync();
-
-            //// Store profile session if needed, similar to CZone
-            //string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright_profile");
-            //bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
-            //var context = await playwright.Firefox.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
-            //{
-            //    Headless = !isDevelopment,
-            //    UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
-            //    ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
-            //    Locale = "en-US",
-            //    TimezoneId = "Asia/Karachi",
-            //    FirefoxUserPrefs = new Dictionary<string, object>
-            //    {
-            //        { "dom.webdriver.enabled", false },
-            //        { "useAutomationExtension", false }
-            //    }
-            //});
-
-            //var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
-
-            //try
-            //{
-            //    Console.WriteLine($"[ZahComputers] Navigating to: {url}");
-            //    await page.GotoAsync(url, new PageGotoOptions
-            //    {
-            //        Timeout = 60000,
-            //        WaitUntil = WaitUntilState.DOMContentLoaded
-            //    });
-            //    await page.WaitForTimeoutAsync(5000);
-
-            //    string pageTitle = await page.TitleAsync();
-            //    Console.WriteLine($"[ZahComputers] Page Title: '{pageTitle}'"); 
-
-            //    await page.WaitForSelectorAsync("div.product-element-bottom", new PageWaitForSelectorOptions { Timeout = 30000 });
-
-            //    string loadMoreSelector = ".wd-load-more a, .autoload-btn";
-            //    int maxClicks = 20; 
-            //    int clickCount = 0;
-
-            //    Console.WriteLine("[ZahComputers] Checking for 'Load More' button...");
-
-            //    while (clickCount < maxClicks)
-            //    {
-            //        var loadMoreButton = page.Locator(loadMoreSelector);
-            //        if (await loadMoreButton.CountAsync() > 0 && await loadMoreButton.IsVisibleAsync())
-            //        {
-            //            Console.WriteLine($"[ZahComputers] Clicking 'Load More' (Attempt {clickCount + 1})...");
-
-            //            await loadMoreButton.ScrollIntoViewIfNeededAsync();
-
-            //            await loadMoreButton.ClickAsync();
-            //            clickCount++;
-
-            //            await page.WaitForTimeoutAsync(2500);
-            //        }
-            //        else
-            //        {
-            //            Console.WriteLine("[ZahComputers] All products loaded! (No more 'Load More' button found).");
-            //            break;
-            //        }
-            //    }
-
-            //    string html_con = await page.ContentAsync();
-
             Console.WriteLine($"[ZahComputers] Asking FlareSolverr to bypass Cloudflare for: {url}");
 
             string flareSolverrUrl = _configuration["FlareSolverr:BaseUrl"] ?? "http://localhost:8191/v1";
@@ -347,78 +283,74 @@ namespace PC_Parts_Scrapper.Services
             try
             {
                 var response = await client.PostAsync(flareSolverrUrl, content);
-                string responseString = await response.Content.ReadAsStringAsync();
 
-                using var jsonDoc = System.Text.Json.JsonDocument.Parse(responseString);
-                var root = jsonDoc.RootElement;
+                
+                var result = await response.Content.ReadFromJsonAsync<FlareSolverrResponse>();
 
-                if (root.GetProperty("status").GetString() != "ok")
+                
+                if (result?.Status == "ok" && result.Solution != null)
                 {
-                    Console.WriteLine($"[ZahComputers ERROR] FlareSolverr failed: {responseString}");
-                    return;
-                }
+                    string html = result.Solution.Response;
+                    var doc = new HtmlDocument();
+                    doc.LoadHtml(html);
 
-                string html_con = root.GetProperty("solution").GetProperty("response").GetString();
+                    var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");
 
-                var doc = new HtmlDocument();
-                doc.LoadHtml(html_con);
-
-                var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");
-
-                if (products == null)
-                {
-                    Console.WriteLine("[ZahComputers] No products found in DOM parsing.");
-                    return;
-                }
-
-                Console.WriteLine($"[ZahComputers] Total products found: {products.Count}. Processing database inserts...");
-
-                Uri link = new Uri("https://www.zahcomputers.pk");
-                var curr_store = await createOrFind_Store("ZahComputers", link);
-
-                foreach (var pro in products)
-                {
-                    var name = pro.SelectSingleNode(".//h3[contains(@class,'wd-entities-title')]/a");
-                    string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
-
-                    Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
-                    if (match.Success)
+                    if (products == null)
                     {
-                        var price_node = pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
-                        var url_node = pro.SelectSingleNode(".//a");
-                        string base_uri = "https://www.zahcomputers.pk";
-                        string href = url_node?.GetAttributeValue("href", "") ?? "";
-                        Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
+                        Console.WriteLine("[ZahComputers] No products found in DOM parsing.");
+                        return;
+                    }
 
-                        var baseProduct = match.Value.ToUpper();
-                        var product_Name = await createorFind_ScrapProduct(baseProduct);
-                        var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
+                    Console.WriteLine($"[ZahComputers] Total products found: {products.Count}. Processing database inserts...");
 
-                        if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
+                    Uri link = new Uri("https://www.zahcomputers.pk");
+                    var curr_store = await createOrFind_Store("ZahComputers", link);
+
+                    foreach (var pro in products)
+                    {
+                        var name = pro.SelectSingleNode(".//h3[contains(@class,'wd-entities-title')]/a");
+                        string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
+
+                        Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
+                        if (match.Success)
                         {
-                            string cleanPriceText = Regex.Replace(price_node.InnerText, @"[^\d.]", "");
+                            var price_node = pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
+                            var url_node = pro.SelectSingleNode(".//a");
+                            string base_uri = "https://www.zahcomputers.pk";
+                            string href = url_node?.GetAttributeValue("href", "") ?? "";
+                            Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
 
-                            if (decimal.TryParse(cleanPriceText, out decimal cpu_Price) && cpu_Price > 0)
+                            var baseProduct = match.Value.ToUpper();
+                            var product_Name = await createorFind_ScrapProduct(baseProduct);
+                            var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
+
+                            if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
                             {
-                                Console.WriteLine($"[ZahComputers] Item: {pro_name} | Price: {cpu_Price} PKR");
-                                await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);
-                            }
-                            else
-                            {
-                                Console.WriteLine($"[ZahComputers] Out of Stock / Unparseable Price: {pro_name}");
+                                string cleanPriceText = Regex.Replace(price_node.InnerText, @"[^\d.]", "");
+
+                                if (decimal.TryParse(cleanPriceText, out decimal cpu_Price) && cpu_Price > 0)
+                                {
+                                    Console.WriteLine($"[ZahComputers] Item: {pro_name} | Price: {cpu_Price} PKR");
+                                    await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[ZahComputers] Out of Stock / Unparseable Price: {pro_name}");
+                                }
                             }
                         }
                     }
                 }
+                else
+                {
+                    Console.WriteLine($"[ZahComputers Error] FlareSolverr failed: {result?.Message ?? "No message provided."}");
+                }
             }
             catch (Exception ex)
-            {
-                Console.WriteLine($"[ZahComputers Error] Scraping execution failed: {ex.Message}");
+            { 
+                Console.WriteLine($"[ZahComputers Error] HTTP Request failed: {ex.Message}");
             }
-            //finally
-            //{
-            //    await context.CloseAsync();
-            //}
         }
     }
 }
