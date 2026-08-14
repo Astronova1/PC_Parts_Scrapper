@@ -70,18 +70,21 @@
 
 .listing-cell {
   padding: 6px 10px;
-  word-break: break-word;
-  min-width: 0;
+  min-width: 0;               
 }
 
 .store-name {
   font-weight: 700;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .item-title {
   color: #d0d0d0;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .price-text {
@@ -92,6 +95,7 @@
 
 .link-cell {
   text-align: center;
+  white-space: nowrap;
 }
 
 .store-link {
@@ -121,11 +125,11 @@
   }
 
   .listing-header {
-    display: none; 
+    display: none;
   }
 
   .listing-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "store price"
       "item item"
@@ -157,7 +161,6 @@
     text-align: right;
   }
 
-  /* Add visible labels on mobile */
   .listing-row .listing-cell::before {
     content: attr(data-label);
     display: block;
@@ -167,6 +170,10 @@
     letter-spacing: 0.05em;
     color: #888;
     margin-bottom: 4px;
+  }
+
+  .price-text::before {
+    text-align: right;
   }
 }
 
@@ -183,6 +190,10 @@
 
   .price-text,
   .last-check {
+    text-align: left;
+  }
+
+  .price-text::before {
     text-align: left;
   }
 }
