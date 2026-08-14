@@ -178,13 +178,76 @@
   }
 }
 
+@media (max-width: 720px) {
+  .product-container {
+    padding: 12px;
+  }
+
+  .product-list {
+    gap: 16px;
+  }
+
+  .listing-header {
+    display: none;
+  }
+
+  .listing-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "store store"
+      "item item"
+      "price lastcheck"
+      "link link";
+    gap: 8px 16px;
+    padding: 14px 12px;
+  }
+
+  .store-name {
+    grid-area: store;
+  }
+
+  .item-title {
+    grid-area: item;
+  }
+
+  .price-text {
+    grid-area: price;
+    text-align: left;
+  }
+
+  .link-cell {
+    grid-area: link;
+    text-align: left;
+  }
+
+  .last-check {
+    grid-area: lastcheck;
+    text-align: right;
+  }
+
+  .listing-row .listing-cell::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin-bottom: 4px;
+  }
+
+  .last-check::before {
+    text-align: right;
+  }
+}
+
 @media (max-width: 420px) {
   .listing-row {
     grid-template-columns: 1fr;
     grid-template-areas:
       "store"
-      "price"
       "item"
+      "price"
       "link"
       "lastcheck";
   }
