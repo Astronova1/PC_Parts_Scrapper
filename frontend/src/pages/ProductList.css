@@ -194,6 +194,7 @@
     text-align: left;
   }
 
+  .price-text::before,
   .price-text::before {
     text-align: left;
   }
