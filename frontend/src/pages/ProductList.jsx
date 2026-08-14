@@ -78,7 +78,12 @@ export default function ProductList() {
                                 </div>
                                 <div className="listing-cell last-check" data-label="Last Checked">
                                     {listing.checkedAt
-                                    ? new Date(listing.checkedAt).toLocaleString()
+                                    ? new Intl.DateTimeFormat(undefined, {
+                                        day: "numeric",
+                                        month: "short",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                    }).format(new Date(listing.checkedAt))
                                     : "N/A"}
                                 </div>
                                 </div>
