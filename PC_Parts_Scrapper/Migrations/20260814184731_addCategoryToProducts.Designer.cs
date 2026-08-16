@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PC_Parts_Scrapper.Data;
@@ -11,9 +12,11 @@ using PC_Parts_Scrapper.Data;
 namespace PC_Parts_Scrapper.Migrations
 {
     [DbContext(typeof(PcPartsContext))]
-    partial class PcPartsContextModelSnapshot : ModelSnapshot
+    [Migration("20260814184731_addCategoryToProducts")]
+    partial class addCategoryToProducts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,23 +24,6 @@ namespace PC_Parts_Scrapper.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("PC_Parts_Scrapper.Models.Category", b =>
-                {
-                    b.Property<int>("CategoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CategoryId"));
-
-                    b.Property<string>("CategoryName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("CategoryId");
-
-                    b.ToTable("Category");
-                });
 
             modelBuilder.Entity("PC_Parts_Scrapper.Models.PriceHistory", b =>
                 {
@@ -71,16 +57,15 @@ namespace PC_Parts_Scrapper.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductId"));
 
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("integer");
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("ProductId");
-
-                    b.HasIndex("CategoryId");
 
                     b.ToTable("Products");
                 });
@@ -147,15 +132,6 @@ namespace PC_Parts_Scrapper.Migrations
                     b.Navigation("ScrapedItem");
                 });
 
-            modelBuilder.Entity("PC_Parts_Scrapper.Models.Product", b =>
-                {
-                    b.HasOne("PC_Parts_Scrapper.Models.Category", "Category")
-                        .WithMany("Products")
-                        .HasForeignKey("CategoryId");
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("PC_Parts_Scrapper.Models.ScrapedItem", b =>
                 {
                     b.HasOne("PC_Parts_Scrapper.Models.Product", "Product")
@@ -173,11 +149,6 @@ namespace PC_Parts_Scrapper.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Store");
-                });
-
-            modelBuilder.Entity("PC_Parts_Scrapper.Models.Category", b =>
-                {
-                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("PC_Parts_Scrapper.Models.Product", b =>

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PC_Parts_Scrapper.Data;
@@ -11,9 +12,11 @@ using PC_Parts_Scrapper.Data;
 namespace PC_Parts_Scrapper.Migrations
 {
     [DbContext(typeof(PcPartsContext))]
-    partial class PcPartsContextModelSnapshot : ModelSnapshot
+    [Migration("20260815125540_AddCategoryModel")]
+    partial class AddCategoryModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -150,7 +153,7 @@ namespace PC_Parts_Scrapper.Migrations
             modelBuilder.Entity("PC_Parts_Scrapper.Models.Product", b =>
                 {
                     b.HasOne("PC_Parts_Scrapper.Models.Category", "Category")
-                        .WithMany("Products")
+                        .WithMany()
                         .HasForeignKey("CategoryId");
 
                     b.Navigation("Category");
@@ -173,11 +176,6 @@ namespace PC_Parts_Scrapper.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Store");
-                });
-
-            modelBuilder.Entity("PC_Parts_Scrapper.Models.Category", b =>
-                {
-                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("PC_Parts_Scrapper.Models.Product", b =>
