@@ -160,8 +160,8 @@ namespace PC_Parts_Scrapper.Services
             Console.WriteLine("Starting ZahComputers Scrape...");
             var zah_link_cpu = "https://zahcomputers.pk/category/processors/";  //ZahComputers website link
             var zah_link_gpu = "https://zahcomputers.pk/category/graphics-cards/";  //ZahComputers gpu link
-            await ZahComputers(zah_link_cpu, pattern);
-            await ZahComputers(zah_link_gpu, pattern_gpu);
+            await ZahComputers(zah_link_cpu, pattern, "CPU");
+            await ZahComputers(zah_link_gpu, pattern_gpu, "GPU");
             Console.WriteLine("ZahComputers Scrape Complete");
         }
 
