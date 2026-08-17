@@ -3,8 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Models;
-using System.Text.RegularExpressions;
+using PC_Parts_Scrapper.Utils;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 
 namespace PC_Parts_Scrapper.Services
 {
@@ -35,13 +36,20 @@ namespace PC_Parts_Scrapper.Services
             return store;
         }
 
-        public async Task<Product> createorFind_ScrapProduct(string search_name)
+        public async Task<Product> createorFind_ScrapProduct(string search_name, string category_name)
         {
             var product = await _pc_parts_Context.Products.FirstOrDefaultAsync(p => p.Name == search_name);
             if (product == null)
             {
+                var category = await _pc_parts_Context.Categories.FirstOrDefaultAsync(c => c.CategoryName == category_name);
+                if (category == null)
+                {
+                    category = new Category { CategoryName = category_name };
+                    _pc_parts_Context.Add(category);
+                    await _pc_parts_Context.SaveChangesAsync();
+                }
                 Console.WriteLine($"[Database] Product '{search_name}' not found. Creating new entry.");
-                Product p1 = new Product { Name = search_name };
+                Product p1 = new Product { Name = search_name, CategoryId = category.CategoryId };
                 _pc_parts_Context.Add(p1);
                 await _pc_parts_Context.SaveChangesAsync();
                 return p1;
@@ -106,6 +114,34 @@ namespace PC_Parts_Scrapper.Services
                 return fallbackValue;
             }
         }
+        public async Task AssignCategoriesToExistingProducts()
+        {
+            var products = await _pc_parts_Context.Products
+                .Where(p => p.Category.CategoryName == null)
+                .ToListAsync();
+
+            Console.WriteLine($"Found {products.Count} products without categories.");
+
+            foreach (var product in products)
+            {
+                string categoryName = AddCategory.Addcategory(product.Name);
+
+                  var category = await _pc_parts_Context.Categories
+                 .FirstOrDefaultAsync(c => c.CategoryName == categoryName);
+
+                if (category == null)
+                {
+                    category = new Category { CategoryName = categoryName };
+                    _pc_parts_Context.Categories.Add(category);
+                    await _pc_parts_Context.SaveChangesAsync();
+                }
+
+                product.CategoryId = category.CategoryId;
+            }
+
+            await _pc_parts_Context.SaveChangesAsync();
+            Console.WriteLine("Categories assigned to all products!");
+        }
 
         #endregion
 
@@ -117,8 +153,8 @@ namespace PC_Parts_Scrapper.Services
             var gpu_link = "https://www.czone.com.pk/graphic-cards-pakistan-ppt.154.aspx";  //CZone gpu link
             string pattern_gpu = @"(RTX|GTX|RX)\s+\d{1,4}\s*(Ti|XT|XTX)?";
 
-            await Czone(cpu_link, pattern);
-            await Czone(gpu_link, pattern_gpu);
+            await Czone(cpu_link, pattern, "CPU");
+            await Czone(gpu_link, pattern_gpu, "GPU");
             Console.WriteLine("CZone Scrape Completed!");
 
             Console.WriteLine("Starting ZahComputers Scrape...");
@@ -129,7 +165,7 @@ namespace PC_Parts_Scrapper.Services
             Console.WriteLine("ZahComputers Scrape Complete");
         }
 
-        public async Task Czone(string link_url, string pattern)
+        public async Task Czone(string link_url, string pattern, string category_name)
         {
             using var playwright = await Playwright.CreateAsync();
 
@@ -231,7 +267,7 @@ namespace PC_Parts_Scrapper.Services
                         Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
 
                         var baseProduct = match.Value.ToUpper();
-                        var product_Name = await createorFind_ScrapProduct(baseProduct);
+                        var product_Name = await createorFind_ScrapProduct(baseProduct, category_name);
                         var scrapedItem = await createOrFind_ScrapItem(currentStore.StoreId, product_Name.ProductId, rel_url, cpu_Name);
 
                         var priceNode = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");
@@ -263,7 +299,7 @@ namespace PC_Parts_Scrapper.Services
             }
         }
 
-        public async Task ZahComputers(string url, string pattern)
+        public async Task ZahComputers(string url, string pattern, string category_name)
         {
             Console.WriteLine($"[ZahComputers] Asking FlareSolverr to bypass Cloudflare for: {url}");
 
@@ -322,7 +358,7 @@ namespace PC_Parts_Scrapper.Services
                             Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
 
                             var baseProduct = match.Value.ToUpper();
-                            var product_Name = await createorFind_ScrapProduct(baseProduct);
+                            var product_Name = await createorFind_ScrapProduct(baseProduct, category_name);
                             var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
 
                             if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
