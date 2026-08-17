@@ -24,5 +24,6 @@ namespace PC_Parts_Scrapper.Data
         public DbSet<Product> Products { get; set; } 
         public DbSet<ScrapedItem> ScrapedItems { get; set; }   
         public DbSet<PriceHistory> PriceHistory { get; set; }
+        public DbSet<Category> Categories { get; set;}
     }
 }
