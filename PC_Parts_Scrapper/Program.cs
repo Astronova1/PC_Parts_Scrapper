@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Services;
+using PC_Parts_Scrapper.Models;
+using PC_Parts_Scrapper.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +48,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>();
     db.Database.Migrate();
+    //var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
+    //await scraper.AssignCategoriesToExistingProducts();
+   // return;
 }
 
 if (!app.Environment.IsDevelopment())
