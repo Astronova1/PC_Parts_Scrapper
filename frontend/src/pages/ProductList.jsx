@@ -1,30 +1,42 @@
 import { useEffect,useState,} from "react";
+import {useSearchParams} from 'react-router-dom'
 import "./ProductList.css";
 
 export default function ProductList() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null)
+    const [searchparams] = useSearchParams()
 
-    useEffect(()=> {
-        const fetchData = async() => {      //this function get json data from the backend
-                try{setLoading(true);
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-                const response = await fetch('/api/product')
-                if(!response.ok){
-                    throw new Error(`HTTP error! Status: ${response.status}`)
+    const categoryId = searchparams.get('category');
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const url = categoryId
+                    ? `/api/product?category=${encodeURIComponent(categoryId)}`
+                    : '/api/product';
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
+
                 const result = await response.json();
-                    setProducts(result)     
-              }catch(err){
-                  console.error("Error Fetching data: ", err)
-                  setError(err.message);
-              } finally{
-                setLoading(false)
-              }
-        }
+                setProducts(result);
+            } catch (err) {
+                console.error('Error Fetching data: ', err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchData();
-    },[])
+    }, [categoryId]);
 
     if (loading)
         {
@@ -94,4 +106,5 @@ export default function ProductList() {
                     </div>
                     )}
                 </div>
-                );}
+                );
+}
