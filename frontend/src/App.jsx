@@ -5,6 +5,7 @@ import heroImg from './assets/hero.png'
 import ProductList from './pages/ProductList'
 import './App.css'
 import Navbar from './components/Navbar'
+import {Route, Routes} from 'react-router-dom'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -12,7 +13,11 @@ function App() {
   return (
     <div className='app-container'>
       <Navbar/>
-      <ProductList/>
+      <Routes>
+        <Route path="/" element={<ProductList/>}/>
+        <Route path="/products" element={<ProductList/>}/>
+        <Route path="/about" element={<div>About Page</div>}/>
+      </Routes>
     </div>
   )
 }
