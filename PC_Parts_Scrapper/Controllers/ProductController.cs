@@ -16,37 +16,37 @@ namespace PC_Parts_Scrapper.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> getProducts()
+        public async Task<IActionResult> getProducts([FromQuery] int? category)
         {
+            var query = _context.Products.AsQueryable();
+            if (category.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == category);
+            }
+                var result = await query
+           .Select(p => new ProductDisplayViewModel
+           {
+               ProductId = p.ProductId,
+               Name = p.Name,
+               Listings = p.ScrapedItems.Select(si => new StoreListingViewModel
+               {
+                   StoreName = si.Store!.Name,
+                   Url = si.Url,
+                   ItemTitle = si.Title,
+                   LatestPrice = si.PriceHistories
+                       .OrderByDescending(ph => ph.CheckedAt)
+                       .Select(ph => ph.Price)
+                       .FirstOrDefault(),
+                   CheckedAt = si.PriceHistories
+                       .OrderByDescending(ph => ph.CheckedAt)
+                       .Select(ph => ph.CheckedAt)
+                       .FirstOrDefault()
+               }).ToList()
+           })
+           .ToListAsync();
 
-            var query = await (
-                from p in _context.Products
-                where p.Name != null
-                select new ProductDisplayViewModel
-                {
-                    ProductId = p.ProductId,
-                    Name = p.Name,
-                    //
-                    Listings = p.ScrapedItems.Select(si => new StoreListingViewModel
-                    {
-                        StoreName = si.Store!.Name,        // which store
-                        Url = si.Url,                            // that store's link
-                        ItemTitle = si.Title,                    // that store's title for this produc
-                                                                     // latest price for THIS store's listing (newest snapshot first)
-                        LatestPrice = si.PriceHistories
-                                        .OrderByDescending(ph => ph.CheckedAt)
-                                        .Select(ph => ph.Price)
-                                        .FirstOrDefault(),
-                        CheckedAt = si.PriceHistories
-                                        .OrderByDescending (ph => ph.CheckedAt)
-                                        .Select(ph => ph.CheckedAt)
-                                        .FirstOrDefault()
-                    }).ToList()
-                }
-            ).ToListAsync();
+                return Ok(result);
 
-
-            return Ok(query);
         }
     }
 }
