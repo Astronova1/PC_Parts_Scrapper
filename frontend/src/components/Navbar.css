@@ -1,0 +1,135 @@
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 0 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.nav-logo {
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: #0d0d0d;
+  text-decoration: none;
+  letter-spacing: -0.3px;
+}
+
+.nav-menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.5rem;
+  align-items: center;
+  height: 100%;
+}
+
+.nav-item {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  color: #2d2d2d;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  height: 100%;
+}
+
+.nav-link:hover {
+  background: #f0f2f5;
+}
+
+.dropdown-toggle::after {
+  content: '';
+  display: inline-block;
+  margin-left: 0.5rem;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #6b7280;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  padding: 0.4rem 0;
+  margin: 0;
+  list-style: none;
+  z-index: 1000;
+  animation: dropdownFade 0.15s ease;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 0.5rem 1.2rem;
+  color: #1f2937;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.1s ease;
+}
+
+.dropdown-item:hover {
+  background: #f3f4f6;
+  color: #0d0d0d;
+}
+
+@keyframes dropdownFade {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .nav-container {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 0.75rem 0;
+  }
+  .nav-menu {
+    flex-wrap: wrap;
+    height: auto;
+    gap: 0;
+    width: 100%;
+    padding-top: 0.5rem;
+  }
+  .nav-item {
+    height: auto;
+  }
+  .nav-link {
+    height: auto;
+    padding: 0.6rem 1rem;
+  }
+  .dropdown-menu {
+    position: static;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    padding-left: 1.5rem;
+    background: #f9fafb;
+  }
+}
