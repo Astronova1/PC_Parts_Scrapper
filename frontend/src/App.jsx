@@ -4,13 +4,14 @@ import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import ProductList from './pages/ProductList'
 import './App.css'
+import Navbar from './components/Navbar'
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
     <div className='app-container'>
-      <h1>PC Price Tracker</h1>
+      <Navbar/>
       <ProductList/>
     </div>
   )
