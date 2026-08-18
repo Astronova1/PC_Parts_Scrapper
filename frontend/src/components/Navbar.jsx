@@ -10,7 +10,7 @@ const Navbar = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('https://localhost:50671/api/categories');
+        const response = await fetch('api/categories');
         if (!response.ok){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
