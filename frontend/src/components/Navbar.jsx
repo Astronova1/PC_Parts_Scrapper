@@ -10,7 +10,8 @@ const Navbar = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('api/categories');
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+        const response = await fetch(`${API_BASE}/api/categories`);
         if (!response.ok){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
