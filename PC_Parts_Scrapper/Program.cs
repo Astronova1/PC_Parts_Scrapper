@@ -48,9 +48,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>();
     db.Database.Migrate();
-    var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
-    await scraper.AssignCategoriesToExistingProducts();
-    return;
+    //var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
+    //await scraper.AssignCategoriesToExistingProducts();
+    //return;
 }
 
 if (!app.Environment.IsDevelopment())
