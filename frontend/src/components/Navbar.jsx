@@ -11,7 +11,7 @@ const Navbar = () => {
     const fetchCategories = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-        const response = await fetch(`${API_BASE}/api/categories`);
+        const response = await fetch(`/api/categories`);
         if (!response.ok){
             throw new Error(`HTTP error! status: ${response.status}`);
         }
