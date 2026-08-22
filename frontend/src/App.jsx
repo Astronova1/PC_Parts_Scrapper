@@ -6,19 +6,22 @@ import ProductList from './pages/ProductList'
 import './App.css'
 import Navbar from './components/Navbar'
 import {Route, Routes} from 'react-router-dom'
+import ProductDetails from './pages/ProductDetails'
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <div className='app-container'>
-      <Navbar/>
-      <Routes>
-        <Route path="/" element={<ProductList/>}/>
-        <Route path="/products" element={<ProductList/>}/>
-        <Route path="/about" element={<div>About Page</div>}/>
-      </Routes>
-    </div>
+    <><Navbar/>
+      <div className='app-container'>
+        <Routes>
+          <Route path="/" element={<ProductList/>}/>
+          <Route path="/products" element={<ProductList/>}/>
+          <Route path="/about" element={<div>About Page</div>}/>
+          <Route path='/products/:id' element={<ProductDetails/>}></Route>
+        </Routes>
+      </div>
+  </>
   )
 }
 
