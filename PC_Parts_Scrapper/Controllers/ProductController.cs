@@ -7,7 +7,7 @@ namespace PC_Parts_Scrapper.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProductController : Controller
+    public class ProductController : ControllerBase
     {
         private readonly PcPartsContext _context;  //implement injecting context in the controller constructor to access the database
         public ProductController(PcPartsContext context)
@@ -16,7 +16,8 @@ namespace PC_Parts_Scrapper.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> getProducts([FromQuery] int? category)
+        public async Task<IActionResult> getProducts([FromQuery] int? category) //get category all or from url params if avaiable from the
+                                                                               //frontend ProductList.jsx
         {
             var query = _context.Products.AsQueryable();
             if (category.HasValue)
@@ -47,6 +48,35 @@ namespace PC_Parts_Scrapper.Controllers
 
                 return Ok(result);
 
+        }
+
+            [HttpGet("{ScrapedItemId}/history")]
+            public async Task<IActionResult> GetPriceHistory(int ScrapedItemId)
+            {
+                var p_Histroy = await _context.PriceHistory
+                    .Where(ph => ph.ScrapedItem!.ProductId == ScrapedItemId)
+                    .OrderBy(ph => ph.CheckedAt)
+                    .Select(ph => new
+                    {
+                        Price = ph.Price,
+                        CheckedAt = ph.CheckedAt
+                    }).ToListAsync();
+                if (p_Histroy == null || !(p_Histroy.Any()) || p_Histroy.Count == 0)
+                {
+                    return NotFound();
+                }
+                return Ok(p_Histroy);
+            }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProductById(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+            return Ok(product);
         }
     }
 }
