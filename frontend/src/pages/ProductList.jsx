@@ -1,5 +1,6 @@
 import { useEffect,useState,} from "react";
 import {useSearchParams} from 'react-router-dom'
+import {Link} from 'react-router-dom'
 import "./ProductList.css";
 
 export default function ProductList() {
@@ -16,7 +17,7 @@ export default function ProductList() {
                 setLoading(true);
                 setError(null);
 
-                const url = categoryId
+                const url = categoryId   //send category filter or all products
                     ? `/api/product?category=${encodeURIComponent(categoryId)}`
                     : '/api/product';
 
@@ -97,6 +98,14 @@ export default function ProductList() {
                                         minute: "2-digit",
                                     }).format(new Date(listing.checkedAt))
                                     : "N/A"}
+                                    <div key={product.id}>
+                                    <h3>
+                                        <Link to={`/products/${product.productId}`} style={{ marginLeft: '10px', fontSize: '14px' }}>
+                                            View Price History
+                                        </Link>
+                                    </h3>
+                                    <p>Current Price: ${product.price}</p>
+                                </div>
                                 </div>
                                 </div>
                             ))}
