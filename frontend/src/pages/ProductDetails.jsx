@@ -60,7 +60,7 @@ export default function ProductDetails() {
             
             <h2>{product?.name || 'Unknown Product'}</h2>
             <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-                Current Price: ${product?.price ? Number(product.price).toFixed(2) : 'N/A'}
+                Current Price: ${product?.latestPrice ? Number(product.latestPrice).toFixed(2) : 'N/A'}
             </p>
 
             <h2>Price History</h2>
