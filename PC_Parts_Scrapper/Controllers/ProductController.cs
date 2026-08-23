@@ -71,7 +71,20 @@ namespace PC_Parts_Scrapper.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Products
+                .Where(p => p.ProductId == id)
+                .Select(p=> new
+                {
+                    ProductId = p.ProductId,
+                    Name = p.Name,
+                    LatestPrice = p.ScrapedItems
+                                   .Where(si => si.ScrapedItemId == id)
+                                   .SelectMany(si => si.PriceHistories)
+                                   .OrderByDescending(ph => ph.CheckedAt)
+                                   .Select(ph => ph.Price)
+                                   .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync();
             if (product == null)
             {
                 return NotFound();
