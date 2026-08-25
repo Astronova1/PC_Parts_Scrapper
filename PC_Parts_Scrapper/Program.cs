@@ -1,8 +1,12 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PC_Parts_Scrapper.Data;
-using PC_Parts_Scrapper.Services;
 using PC_Parts_Scrapper.Models;
+using PC_Parts_Scrapper.Services;
 using PC_Parts_Scrapper.Utils;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +41,36 @@ if (!string.IsNullOrEmpty(databaseUrl))
 builder.Services.AddDbContext<PcPartsContext>(options =>
     options.UseNpgsql(connectionString));
 
+// 2. Configure Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<PcPartsContext>()
+    .AddDefaultTokenProviders();
+
+// 3. Configure JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey)
+        };
+    });
+builder.Services.AddAuthorization();
+
+
 builder.Services.AddHostedService<ScrapperWorker>();
 builder.Services.AddTransient<HtmlScraperService>();
 builder.Services.AddControllers();
@@ -65,7 +99,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseCors("AllowReactApp");
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
