@@ -15,7 +15,10 @@ namespace PC_Parts_Scrapper.Data
                 Entity.Property(e =>e.ScrapedItemId)
                                    .UseIdentityByDefaultColumn();       //add key to auto generate
                 }
+
             );
+
+            base.OnModelCreating(modelBuilder);
         }
         public PcPartsContext(DbContextOptions<PcPartsContext> options) : base(options)
         { 
@@ -25,5 +28,9 @@ namespace PC_Parts_Scrapper.Data
         public DbSet<ScrapedItem> ScrapedItems { get; set; }   
         public DbSet<PriceHistory> PriceHistory { get; set; }
         public DbSet<Category> Categories { get; set;}
+        public DbSet<PriceAlert> PriceAlerts { get; set; }
+
+
+
     }
 }
