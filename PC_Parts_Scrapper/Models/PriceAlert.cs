@@ -6,9 +6,6 @@ namespace PC_Parts_Scrapper.Models
     {
         public int Id { get; set; }
         public string UserId { get; set; } = string.Empty;
-
-        [ForeignKey("UserId")]
-        public ApplicationUser User { get; set; } = null!;
         public int ProductId { get; set; }
         public Product Product { get; set; } = null!;
         public decimal TargetPrice { get; set; }
