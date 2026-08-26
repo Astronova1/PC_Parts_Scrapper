@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; 
+import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -6,16 +8,17 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
         const response = await fetch(`/api/categories`);
-        if (!response.ok){
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json()
+        const data = await response.json();
         setCategories(data);
       } catch (err) {
         console.error('Failed to fetch categories:', err);
@@ -31,11 +34,11 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <a href="/" className="nav-logo">PC Parts Scrapper</a>
+        <Link to="/" className="nav-logo">PC Parts Scrapper</Link>
 
         <ul className="nav-menu">
           <li className="nav-item">
-            <a href="/" className="nav-link">Home</a>
+            <Link to="/" className="nav-link">Home</Link>
           </li>
 
           <li
@@ -43,9 +46,9 @@ const Navbar = () => {
             onMouseEnter={() => setDropdownOpen(true)}
             onMouseLeave={() => setDropdownOpen(false)}
           >
-            <a href="/products" className="nav-link dropdown-toggle">
+            <Link to="/products" className="nav-link dropdown-toggle">
               Products
-            </a>
+            </Link>
             {dropdownOpen && (
               <ul className="dropdown-menu">
                 {loading ? (
@@ -57,9 +60,9 @@ const Navbar = () => {
                 ) : (
                   categories.map((cat) => (
                     <li key={cat.categoryId}>
-                      <a href={`/products?category=${cat.categoryId}`} className="dropdown-item">
+                      <Link to={`/products?category=${cat.categoryId}`} className="dropdown-item">
                         {cat.categoryName}
-                      </a>
+                      </Link>
                     </li>
                   ))
                 )}
@@ -68,8 +71,32 @@ const Navbar = () => {
           </li>
 
           <li className="nav-item">
-            <a href="/about" className="nav-link">About</a>
+            <Link to="/about" className="nav-link">About</Link>
           </li>
+
+          {isAuthenticated ? (
+            <>
+              <li className="nav-item">
+                <span className="nav-link user-greeting">
+                  👋 {user?.firstName || user?.email}
+                </span>
+              </li>
+              <li className="nav-item">
+                <button className="nav-link logout-btn" onClick={logout}>
+                  Logout
+                </button>
+              </li>
+            </>
+          ) : (
+            <>
+              <li className="nav-item">
+                <Link to="/login" className="nav-link">Login</Link>
+              </li>
+              <li className="nav-item">
+                <Link to="/register" className="nav-link">Register</Link>
+              </li>
+            </>
+          )}
         </ul>
       </div>
     </nav>

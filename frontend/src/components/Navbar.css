@@ -132,4 +132,28 @@
     padding-left: 1.5rem;
     background: #f9fafb;
   }
+
+}
+.user-greeting {
+  font-weight: 500;
+  cursor: default;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #2d2d2d;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  height: 100%;
+  font-family: inherit;
+}
+
+.logout-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
 }
