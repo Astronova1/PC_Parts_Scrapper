@@ -8,9 +8,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-            target: 'http://localhost:50672', //this port where the backend is running
+            target: 'http://localhost:50672', 
         changeOrigin: true,
         secure: false,
+        ws: true,
       }
     }
   },
