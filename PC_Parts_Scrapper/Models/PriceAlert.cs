@@ -11,5 +11,9 @@ namespace PC_Parts_Scrapper.Models
         public decimal TargetPrice { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime ActiveAt { get; set; } = DateTime.UtcNow;
+
+        public ApplicationUser User { get; set; } = null!;
+    }
     }
 }

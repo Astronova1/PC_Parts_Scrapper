@@ -30,8 +30,7 @@ namespace PC_Parts_Scrapper.Data
         public DbSet<PriceHistory> PriceHistory { get; set; }
         public DbSet<Category> Categories { get; set;}
         public DbSet<PriceAlert> PriceAlerts { get; set; }
-
-
+        public DbSet<Notification> Notifications { get; set; }
 
     }
 }
