@@ -81,11 +81,15 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>();
+    var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
+    await scraper.CheckPriceAlertsAsync();
     db.Database.Migrate();
-    //var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
+
     //await scraper.AssignCategoriesToExistingProducts();
     //return;
 }
+
+
 
 if (!app.Environment.IsDevelopment())
 {
@@ -93,7 +97,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 
 app.UseRouting();
