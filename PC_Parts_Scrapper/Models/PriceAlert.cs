@@ -15,5 +15,4 @@ namespace PC_Parts_Scrapper.Models
 
         public ApplicationUser User { get; set; } = null!;
     }
-    }
 }
