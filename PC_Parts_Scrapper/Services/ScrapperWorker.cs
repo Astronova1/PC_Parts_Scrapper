@@ -22,10 +22,11 @@ namespace PC_Parts_Scrapper.Services
                         var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();  //use Scrapper in the scope
                         Console.WriteLine("Starting Scraping service");
                         await scraper.ScrapStores();
+                        await scraper.CheckPriceAlertsAsync();
                     }  //the database scope ends here and the scope is disposed now
                     Console.WriteLine("Scraping service completed");
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Console.WriteLine($"Error in ScrapperWorker: {ex.Message}");
                 }
