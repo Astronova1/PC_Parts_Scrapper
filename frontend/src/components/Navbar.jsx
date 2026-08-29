@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom'; 
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -78,13 +79,16 @@ const Navbar = () => {
             <>
               <li className="nav-item">
                 <span className="nav-link user-greeting">
-                  👋 {user?.firstName || user?.email}
+                   {user?.firstName || user?.email}
                 </span>
               </li>
               <li className="nav-item">
                 <button className="nav-link logout-btn" onClick={logout}>
                   Logout
                 </button>
+              </li>
+              <li className="nav-item">
+                    <NotificationBell />
               </li>
             </>
           ) : (
