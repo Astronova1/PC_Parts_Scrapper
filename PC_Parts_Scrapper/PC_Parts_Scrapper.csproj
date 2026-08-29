@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Controllers\NotificationController.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.30" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.30" />
@@ -28,10 +24,6 @@
 
   <ItemGroup>
     <Folder Include="Backend\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Controllers\NotificationController.cs" />
   </ItemGroup>
 
 </Project>
