@@ -1,14 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import ProductList from './ProductList';
+import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function ProductDetails() {
     const { id } = useParams(); 
-    const [product, setProduct] = useState(null)
+    const { token, isAuthenticated } = useAuth();
+    const { fetchNotifications } = useNotifications();
+    const [product, setProduct] = useState(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    
+    const [targetPrice, setTargetPrice] = useState('');
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alert, setAlert] = useState(null);
+    const [alertLoading, setAlertLoading] = useState(false);
+
+    const getAlerts = useCallback(async () => {
+        const response = await fetch('/api/alerts', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) return [];
+        return response.json();
+    }, [token]);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -18,6 +34,7 @@ export default function ProductDetails() {
                 setLoading(true);
                 setError(null);
 
+                // Fetch product details
                 const productResponse = await fetch(`/api/product/${id}`);
                 if (productResponse.ok) {
                     const productData = await productResponse.json();
@@ -26,19 +43,29 @@ export default function ProductDetails() {
                     setError("Product not found.");
                 }
 
-                
+                // Fetch price history
                 const response = await fetch(`/api/product/${id}/history`);
-                
                 if (!response.ok) {
                     if (response.status === 404) {
                         setHistory([]);
-                        return;
+                    } else {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                } else {
+                    const data = await response.json();
+                    setHistory(data);
                 }
-                
-                const data = await response.json();
-                setHistory(data);
+
+                if (isAuthenticated && token && id) {
+                    try {
+                        const alerts = await getAlerts();
+                        const existing = alerts.find(a => Number(a.productId) === Number(id));
+                        setAlert(existing || null);
+                        if (existing) setTargetPrice(String(existing.targetPrice ?? ''));
+                    } catch (err) {
+                        console.error('Failed to fetch alerts:', err);
+                    }
+                }
             } catch (err) {
                 console.error("Error fetching history: ", err);
                 setError("Failed to load price history. Is the backend running?");
@@ -48,7 +75,81 @@ export default function ProductDetails() {
         };
 
         fetchHistory();
-    }, [id]);
+    }, [id, isAuthenticated, token, getAlerts]);
+
+    const saveAlert = async () => {
+        if (!isAuthenticated) {
+            setAlertMessage('Please log in to set price alerts.');
+            return;
+        }
+
+        const price = parseFloat(targetPrice);
+        if (isNaN(price) || price <= 0) {
+            setAlertMessage('Please enter a valid target price.');
+            return;
+        }
+
+        setAlertLoading(true);
+        setAlertMessage('');
+
+        try {
+            const alertId = alert?.id ?? alert?.alertId;
+            const response = await fetch(alert ? `/api/alerts/${alertId}` : '/api/alerts', {
+                method: alert ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ productId: parseInt(id), targetPrice: price })
+            });
+
+            if (response.ok) {
+                const savedAlert = response.status === 204 ? { ...alert, targetPrice: price } : await response.json();
+                setAlert(savedAlert);
+                setTargetPrice(String(savedAlert.targetPrice ?? price));
+                setAlertMessage(alert ? 'Alert updated.' : 'Alert set. You will be notified when the price reaches this price or below.');
+                await fetchNotifications();
+            } else {
+                // Some APIs commit the row and fail while producing the response.
+                const alerts = await getAlerts();
+                const committedAlert = alerts.find(a => Number(a.productId) === Number(id));
+                if (committedAlert) {
+                    setAlert(committedAlert);
+                    setTargetPrice(String(committedAlert.targetPrice ?? price));
+                    setAlertMessage('Alert set. You will be notified when the price reaches this price or below.');
+                    await fetchNotifications();
+                } else {
+                    const err = await response.json().catch(() => ({}));
+                    setAlertMessage(err.message || 'Failed to set alert.');
+                }
+            }
+        } catch {
+            setAlertMessage('Failed to set alert. Please try again.');
+        } finally {
+            setAlertLoading(false);
+        }
+    };
+
+    const deleteAlert = async () => {
+        if (!alert) return;
+        setAlertLoading(true);
+        setAlertMessage('');
+        try {
+            const alertId = alert.id ?? alert.alertId;
+            const response = await fetch(`/api/alerts/${alertId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Delete failed');
+            setAlert(null);
+            setTargetPrice('');
+            setAlertMessage('Alert deleted.');
+        } catch {
+            setAlertMessage('Failed to delete alert. Please try again.');
+        } finally {
+            setAlertLoading(false);
+        }
+    };
 
     if (loading) return <p>Loading chart...</p>;
 
@@ -60,8 +161,55 @@ export default function ProductDetails() {
             
             <h2>{product?.name || 'Unknown Product'}</h2>
             <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-                Current Price: ${product?.latestPrice ? Number(product.latestPrice).toFixed(2) : 'N/A'}
+                Current Price: {product?.latestPrice ? `Rs. ${Number(product.latestPrice).toFixed(2)}` : 'N/A'}
             </p>
+
+            {/* --- PRICE ALERT SECTION --- */}
+            <div style={{ margin: '20px 0', padding: '16px', border: '1px solid #e5e5e5', borderRadius: '8px' }}>
+                <h3>Price Alert</h3>
+                {isAuthenticated ? (
+                    alert ? (
+                        <div>
+                            <p style={{ color: 'green' }}>Active alert: Rs. {Number(alert.targetPrice).toFixed(2)}</p>
+                            <input
+                                type="number"
+                                value={targetPrice}
+                                onChange={(e) => setTargetPrice(e.target.value)}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', marginRight: '10px' }}
+                            />
+                            <button onClick={saveAlert} disabled={alertLoading}>Change Alert</button>
+                            <button onClick={deleteAlert} disabled={alertLoading} style={{ marginLeft: '8px' }}>Delete Alert</button>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <input
+                                type="number"
+                                placeholder="Enter target price (PKR)"
+                                value={targetPrice}
+                                onChange={(e) => setTargetPrice(e.target.value)}
+                                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                            />
+                            <button
+                                onClick={saveAlert}
+                                disabled={alertLoading}
+                                style={{
+                                    padding: '8px 16px',
+                                    background: alertLoading ? '#aaa' : '#4d6bfe',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: alertLoading ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {alertLoading ? 'Setting...' : 'Set Alert'}
+                            </button>
+                        </div>
+                    )
+                ) : (
+                    <p><Link to="/login">Log in</Link> to set price alerts.</p>
+                )}
+                {alertMessage && <p style={{ marginTop: '8px' }}>{alertMessage}</p>}
+            </div>
 
             <h2>Price History</h2>
             
@@ -72,19 +220,15 @@ export default function ProductDetails() {
                     <ResponsiveContainer>
                         <LineChart data={history}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            
                             <XAxis 
                                 dataKey="checkedAt" 
                                 tickFormatter={(time) => new Date(time).toLocaleDateString()} 
                             />
-                            
-                            <YAxis tickFormatter={(price) => `Pkr${Number(price).toFixed(2)}`} />
-                            
+                            <YAxis tickFormatter={(price) => `PKR ${Number(price).toFixed(2)}`} />
                             <Tooltip 
                                 labelFormatter={(label) => new Date(label).toLocaleString()}
                                 formatter={(value) => [`Rs. ${Number(value).toFixed(2)}`, "Price"]}
                             />
-                            
                             <Line 
                                 type="monotone" 
                                 dataKey="price" 
