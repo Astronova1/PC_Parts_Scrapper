@@ -21,6 +21,49 @@ namespace PC_Parts_Scrapper.Services
             _configuration = configuration;
         }
 
+        public async Task CheckPriceAlertsAsync()
+        {
+            var productsWithAlerts = await _pc_parts_Context.Products
+                .Where(p => p.ScrapedItems.Any(si => si.PriceHistories.Any()))
+                .Include(p => p.ScrapedItems)
+                    .ThenInclude(si => si.PriceHistories)
+                .Where(p => p.PriceAlerts.Any(a => a.IsActive))
+                .ToListAsync();
+
+            foreach (var product in productsWithAlerts)
+            {
+                var latestPrice = product.ScrapedItems
+                    .SelectMany(si => si.PriceHistories)
+                    .OrderByDescending(ph => ph.CheckedAt)
+                    .FirstOrDefault();
+
+                if (latestPrice == null) continue;
+
+                foreach (var alert in product.PriceAlerts)
+                {
+                    if (latestPrice.Price <= alert.TargetPrice)
+                    {
+                        alert.IsActive = false;       
+                        alert.ActiveAt = DateTime.UtcNow;
+
+                        var notification = new Notification
+                        {
+                            UserId = alert.UserId,
+                            PriceAlertId = alert.Id,
+                            Title = $"Price Drop Alert: {product.Name}",
+                            Message = $"{product.Name} is now {latestPrice.Price:C} (below your target of {alert.TargetPrice:C})",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        };
+
+                        _pc_parts_Context.Notifications.Add(notification);
+                    }
+                }
+            }
+
+            await _pc_parts_Context.SaveChangesAsync();
+        }
+
         #region Database Helper Methods
 
         public async Task<Store> createOrFind_Store(string name, Uri url)
