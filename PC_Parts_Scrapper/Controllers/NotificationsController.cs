@@ -7,13 +7,13 @@ using System.Security.Claims;
 namespace PC_Parts_Scrapper.Controllers
 {
 	[ApiController]
-	[Route("api/[controller]")]
+	[Route("api/notifications")]
 	[Authorize]
-	public class NotificationsController : ControllerBase
+	public class NotificationsApiController : ControllerBase
 	{
 		private readonly PcPartsContext _context;
 
-		public NotificationsController(PcPartsContext context)
+		public NotificationsApiController(PcPartsContext context)
 		{
 			_context = context;
 		}
