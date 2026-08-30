@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. PostgreSQL Database Service
   postgres-db:
@@ -29,22 +27,20 @@ services:
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      # Overrides appsettings.json ConnectionStrings:DefaultConnection
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      - ASPNETCORE_ENVIRONMENT=Production
       - FlareSolverr__BaseUrl=http://flaresolverr:8191/v1
-      - JWTSettings__SECRET=${JWT_SECRET}
-      - JWTSettings_ISSUER=findpcparts.app
-      - JWTSettings_AUDIENCE=findpcparts.app
-      - JwtSettings_ExpiryMinutes=60
+      - JwtSettings__Secret=${JWT_SECRET}
+      - JwtSettings__Issuer=https://findpcparts.app
+      - JwtSettings__Audience=https://findpcparts.app
+      - JwtSettings__ExpiryMinutes=60
     ports:
       - "8080:8080"
     volumes:
-      # Persists Cloudflare clearance cookies across container restarts
       - playwright_profile:/app/playwright_profile
     depends_on:
       postgres-db:
         condition: service_healthy
+
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
@@ -56,7 +52,7 @@ services:
     ports:
       - "8191:8191"
 
-  # 3. React Frontend Service
+  # 4. React Frontend Service
   frontend:
     build:
       context: ./frontend
