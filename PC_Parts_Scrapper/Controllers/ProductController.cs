@@ -31,6 +31,7 @@ namespace PC_Parts_Scrapper.Controllers
                Name = p.Name,
                Listings = p.ScrapedItems.Select(si => new StoreListingViewModel
                {
+                   ScrapedItemId = si.ScrapedItemId,
                    StoreName = si.Store!.Name,
                    Url = si.Url,
                    ItemTitle = si.Title,
@@ -54,12 +55,13 @@ namespace PC_Parts_Scrapper.Controllers
             public async Task<IActionResult> GetPriceHistory(int ScrapedItemId)
             {
                 var p_Histroy = await _context.PriceHistory
-                    .Where(ph => ph.ScrapedItem!.ProductId == ScrapedItemId)
+                    .Where(ph => ph.ScrapedItemId == ScrapedItemId)
                     .OrderBy(ph => ph.CheckedAt)
                     .Select(ph => new
                     {
                         Price = ph.Price,
-                        CheckedAt = ph.CheckedAt
+                        CheckedAt = ph.CheckedAt,
+                        StoreName = ph.ScrapedItem!.Store!.Name,
                     }).ToListAsync();
                 if (p_Histroy == null || !(p_Histroy.Any()) || p_Histroy.Count == 0)
                 {

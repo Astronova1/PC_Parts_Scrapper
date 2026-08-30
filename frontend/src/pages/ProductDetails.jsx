@@ -1,11 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 
 export default function ProductDetails() {
     const { id } = useParams(); 
+    const [searchParams] = useSearchParams();
+    const scrapedItemIdParam = searchParams.get('item');
+    const scrapedItemId = scrapedItemIdParam && scrapedItemIdParam !== 'undefined'
+        ? scrapedItemIdParam
+        : null;
+    const storeName = searchParams.get('store');
     const { token, isAuthenticated } = useAuth();
     const { fetchNotifications } = useNotifications();
     const [product, setProduct] = useState(null);
@@ -43,8 +49,11 @@ export default function ProductDetails() {
                     setError("Product not found.");
                 }
 
-                // Fetch price history
-                const response = await fetch(`/api/product/${id}/history`);
+                const historyUrl = scrapedItemId
+                    ? `/api/product/${scrapedItemId}/history`  // Single-store history
+                    : `/api/product/${id}/history`;            // Fallback to all stores
+                
+                const response = await fetch(historyUrl);
                 if (!response.ok) {
                     if (response.status === 404) {
                         setHistory([]);
@@ -75,7 +84,7 @@ export default function ProductDetails() {
         };
 
         fetchHistory();
-    }, [id, isAuthenticated, token, getAlerts]);
+    }, [id, scrapedItemId, isAuthenticated, token, getAlerts]);
 
     const saveAlert = async () => {
         if (!isAuthenticated) {
@@ -110,7 +119,6 @@ export default function ProductDetails() {
                 setAlertMessage(alert ? 'Alert updated.' : 'Alert set. You will be notified when the price reaches this price or below.');
                 await fetchNotifications();
             } else {
-                // Some APIs commit the row and fail while producing the response.
                 const alerts = await getAlerts();
                 const committedAlert = alerts.find(a => Number(a.productId) === Number(id));
                 if (committedAlert) {
@@ -211,7 +219,7 @@ export default function ProductDetails() {
                 {alertMessage && <p style={{ marginTop: '8px' }}>{alertMessage}</p>}
             </div>
 
-            <h2>Price History</h2>
+            <h2>Price History {storeName ? `— ${storeName}` : ''}</h2>
             
             {error && <p style={{ color: 'red' }}>{error}</p>}
             
