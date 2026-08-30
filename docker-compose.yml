@@ -33,7 +33,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - ASPNETCORE_ENVIRONMENT=Production
       - FlareSolverr__BaseUrl=http://flaresolverr:8191/v1
-      - JWTSettings_SECRET={JWT_SECRET}
+      - JWTSettings__SECRET={JWT_SECRET}
       - JWTSettings_ISSUER=findpcparts.app
       - JWTSettings_AUDIENCE=findpcparts.app
     ports:
