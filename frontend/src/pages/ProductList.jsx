@@ -14,8 +14,10 @@ export default function ProductList() {
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
+    const getScrollKey = () => `productListScrollY_${categoryId || 'all'}_${currentPage}`;
+
     const saveScrollPosition = () => {
-        sessionStorage.setItem('productListScrollY', String(window.scrollY));
+        sessionStorage.setItem(getScrollKey(), String(window.scrollY));
     };
 
     const [pagination, setPagination] = useState({
@@ -32,6 +34,7 @@ export default function ProductList() {
     useEffect(() => {
         if (location.state && location.state.from === 'list') {
             const { category, page, expanded } = location.state;
+            console.debug('[ProductList] Restoring from navigation state:', { category, page, expanded });
 
             if (category !== categoryId) {
                 setSearchParams(prevParams => {
@@ -79,14 +82,15 @@ export default function ProductList() {
 
     useEffect(() => {
         if (!loading && products.length > 0) {
-            const savedScroll = Number(sessionStorage.getItem('productListScrollY') || '0');
-            if (savedScroll > 0) {
-                requestAnimationFrame(() => {
-                    window.scrollTo({ top: savedScroll, behavior: 'auto' });
-                });
-            }
+            const scrollKey = getScrollKey();
+            const savedScroll = Number(sessionStorage.getItem(scrollKey) || '0');
+            // Always restore if we have saved position, even if 0
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: savedScroll, behavior: 'auto' });
+                console.debug(`[ProductList] Restoring scroll to ${savedScroll} for key: ${scrollKey}`);
+            });
         }
-    }, [loading, products.length]);
+    }, [loading, products.length, currentPage, categoryId]);
 
     useEffect(() => {
         const handleBeforeUnload = () => {
@@ -104,6 +108,7 @@ export default function ProductList() {
             try {
                 setLoading(true);
                 setError(null);
+                window.scrollTo({ top: 0, behavior: 'auto' });
 
                 const params = new URLSearchParams();
                 if (categoryId) params.append('category', categoryId);
@@ -169,7 +174,6 @@ export default function ProductList() {
         );
     };
 
-    // ─── Render ───
     if (loading) return <div className="loading">Loading hardware....</div>;
     if (error) return <div className="error"> Error: {error} </div>;
 
@@ -284,6 +288,39 @@ export default function ProductList() {
                             );
                         })}
                     </div>
+                    {products.length > 0 && pagination.totalPages > 1 && (
+    <div className="pagination-controls">
+        <button
+            className="pagination-btn"
+            onClick={() => {
+                setSearchParams(prev => {
+                    const params = new URLSearchParams(prev);
+                    params.set('page', Math.max(1, currentPage - 1));
+                    return params;
+                });
+            }}
+            disabled={currentPage === 1}
+        >
+            ← Previous
+        </button>
+        <span className="pagination-info">
+            Page {currentPage} of {pagination.totalPages}
+        </span>
+        <button
+            className="pagination-btn"
+            onClick={() => {
+                setSearchParams(prev => {
+                    const params = new URLSearchParams(prev);
+                    params.set('page', Math.min(pagination.totalPages, currentPage + 1));
+                    return params;
+                });
+            }}
+            disabled={currentPage === pagination.totalPages}
+        >
+            Next →
+        </button>
+    </div>
+)}
                 </>
             )}
         </div>
