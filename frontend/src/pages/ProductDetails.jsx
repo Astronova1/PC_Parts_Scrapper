@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -24,6 +24,7 @@ export default function ProductDetails() {
     const [alertMessage, setAlertMessage] = useState('');
     const [alert, setAlert] = useState(null);
     const [alertLoading, setAlertLoading] = useState(false);
+    const navigate = useNavigate();
 
     const getAlerts = useCallback(async () => {
         const response = await fetch('/api/alerts', {
@@ -161,7 +162,6 @@ export default function ProductDetails() {
 
     if (loading) return <p>Loading chart...</p>;
 
-    // Determine if we have many data points for optimization
     const hasManyPoints = history.length > 50;
     const chartHeight = window.innerWidth < 768 ? 250 : 400;
     const yAxisWidth = 70;
@@ -169,16 +169,17 @@ export default function ProductDetails() {
 
     return (
         <div style={{ padding: '20px' }}>
-            <Link to="/" style={{ display: 'inline-block', marginBottom: '20px', textDecoration: 'none', color: '#007bff' }}>
-                &larr; Back to Products
-            </Link>
-            
+            <button 
+            onClick={() => navigate(-1)} 
+            style={{ display: 'inline-block', marginBottom: '20px', textDecoration: 'none', color: '#007bff', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}>
+            &larr; Back to Products
+            </button>
+
             <h2>{product?.name || 'Unknown Product'}</h2>
             <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
                 Current Price: {product?.latestPrice ? `Rs. ${Number(product.latestPrice).toFixed(2)}` : 'N/A'}
             </p>
 
-            {/* --- PRICE ALERT SECTION --- */}
             <div style={{ margin: '20px 0', padding: '16px', border: '1px solid #e5e5e5', borderRadius: '8px' }}>
                 <h3>Price Alert</h3>
                 {isAuthenticated ? (
@@ -225,7 +226,6 @@ export default function ProductDetails() {
                 {alertMessage && <p style={{ marginTop: '8px' }}>{alertMessage}</p>}
             </div>
 
-            {/* --- IMPROVED PRICE HISTORY CHART --- */}
             <h2>Price History {storeName ? `— ${storeName}` : ''}</h2>
             
             {error && <p style={{ color: 'red' }}>{error}</p>}

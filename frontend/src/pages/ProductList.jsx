@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useLocation, useNavigate } from "react-router-dom";
 import "./ProductList.css";
 
 export default function ProductList() {
@@ -7,33 +7,97 @@ export default function ProductList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+    const navigate = useNavigate();
 
     const categoryId = searchParams.get('category');
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
-    const page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+    const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+
+    const saveScrollPosition = () => {
+        sessionStorage.setItem('productListScrollY', String(window.scrollY));
+    };
 
     const [pagination, setPagination] = useState({
         totalCount: 0,
-        page: 1,
+        page: currentPage,
         pageSize: 20,
         totalPages: 1
     });
+    const [expandedProducts, setExpandedProducts] = useState(() => {
+        const savedExpanded = sessionStorage.getItem('expandedProducts');
+        return savedExpanded ? JSON.parse(savedExpanded) : [];
+    });
 
-    const [expandedProducts, setExpandedProducts] = useState([]);
-    const toggleExpand = (productId) => {
-        setExpandedProducts(prev =>
-            prev.includes(productId)
-                ? prev.filter(id => id !== productId)
-                : [...prev, productId]
-        );
-    };
-    const expandAll = () => {
-        setExpandedProducts(products.map(p => p.productId));
-    };
-    const collapseAll = () => {
-        setExpandedProducts([]);
-    };
-    const allExpanded = products.length > 0 && expandedProducts.length === products.length;
+    useEffect(() => {
+        if (location.state && location.state.from === 'list') {
+            const { category, page, expanded } = location.state;
+
+            if (category !== categoryId) {
+                setSearchParams(prevParams => {
+                    const newParams = new URLSearchParams(prevParams);
+                    if (category) {
+                        newParams.set('category', category);
+                    } else {
+                        newParams.delete('category');
+                    }
+                    return newParams;
+                });
+            }
+            
+            if (page !== currentPage) {
+                setSearchParams(prevParams => {
+                    const newParams = new URLSearchParams(prevParams);
+                    newParams.set('page', page);
+                    return newParams;
+                });
+            }
+
+            if (expanded) {
+                setExpandedProducts(expanded);
+            }
+            
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, categoryId, currentPage, setSearchParams]);
+
+    useEffect(() => {
+        window.history.scrollRestoration = 'manual';
+
+        const handleScroll = () => saveScrollPosition();
+        const handleBeforeUnload = () => saveScrollPosition();
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.history.scrollRestoration = 'auto';
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!loading && products.length > 0) {
+            const savedScroll = Number(sessionStorage.getItem('productListScrollY') || '0');
+            if (savedScroll > 0) {
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: savedScroll, behavior: 'auto' });
+                });
+            }
+        }
+    }, [loading, products.length]);
+
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            sessionStorage.setItem('expandedProducts', JSON.stringify(expandedProducts));
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [expandedProducts]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -43,7 +107,7 @@ export default function ProductList() {
 
                 const params = new URLSearchParams();
                 if (categoryId) params.append('category', categoryId);
-                params.append('page', page);
+                params.append('page', currentPage);
                 params.append('pageSize', '20');
 
                 const url = `/api/product?${params.toString()}`;
@@ -60,7 +124,6 @@ export default function ProductList() {
                         totalPages: result.totalPages
                     });
                 } else if (Array.isArray(result)) {
-                    // Fallback in case endpoint returns array
                     setProducts(result);
                 }
             } catch (err) {
@@ -71,16 +134,42 @@ export default function ProductList() {
             }
         };
         fetchData();
-    }, [categoryId, page]);
+    }, [categoryId, currentPage]);
 
-    const handlePageChange = (newPage) => {
-        if (newPage < 1 || newPage > pagination.totalPages) return;
-        const newParams = new URLSearchParams(searchParams);
-        newParams.set('page', newPage);
-        setSearchParams(newParams);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    const toggleExpand = (productId) => {
+        setExpandedProducts(prev =>
+            prev.includes(productId)
+                ? prev.filter(id => id !== productId)
+                : [...prev, productId]
+        );
     };
 
+    const expandAll = () => {
+        setExpandedProducts(products.map(p => p.productId));
+    };
+
+    const collapseAll = () => {
+        setExpandedProducts([]);
+    };
+
+    const allExpanded = products.length > 0 && expandedProducts.length === products.length;
+
+    const goToProductDetails = (productId, scrapedItemId, storeName) => {
+        saveScrollPosition();
+        navigate(
+            `/products/${productId}?item=${encodeURIComponent(scrapedItemId)}&store=${encodeURIComponent(storeName)}`,
+            {
+                state: {
+                    from: 'list',
+                    category: categoryId,
+                    page: currentPage,
+                    expanded: expandedProducts
+                }
+            }
+        );
+    };
+
+    // ─── Render ───
     if (loading) return <div className="loading">Loading hardware....</div>;
     if (error) return <div className="error"> Error: {error} </div>;
 
@@ -122,12 +211,11 @@ export default function ProductList() {
                                                 From: Rs. {lowestPrice.toLocaleString()}
                                             </span>
                                         )}
-                                        <span
-                                            className={`expand-chevron ${isExpanded ? 'expanded' : ''}`}
-                                        >
+                                        <span className={`expand-chevron ${isExpanded ? 'expanded' : ''}`}>
                                             ▸
                                         </span>
                                     </div>
+
                                     <div className={`listings-wrapper ${isExpanded ? 'open' : ''}`}>
                                         <div className="listings">
                                             <div className="listing-header">
@@ -176,11 +264,16 @@ export default function ProductList() {
                                                             }).format(new Date(listing.checkedAt))
                                                             : "N/A"}
                                                         <div className="history-link">
-                                                            <Link
-                                                                to={`/products/${product.productId}?item=${encodeURIComponent(listing.scrapedItemId)}&store=${encodeURIComponent(listing.storeName)}`}
+                                                            <span
+                                                                onClick={() => goToProductDetails(
+                                                                    product.productId,
+                                                                    listing.scrapedItemId,
+                                                                    listing.storeName
+                                                                )}
+                                                                style={{ cursor: 'pointer', color: '#60a5fa' }}
                                                             >
                                                                 View Price History
-                                                            </Link>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -191,28 +284,6 @@ export default function ProductList() {
                             );
                         })}
                     </div>
-
-                    {pagination.totalPages > 1 && (
-                        <div className="pagination-controls">
-                            <button
-                                onClick={() => handlePageChange(pagination.page - 1)}
-                                disabled={pagination.page <= 1}
-                                className="pagination-btn"
-                            >
-                                &laquo; Previous
-                            </button>
-                            <span className="pagination-info">
-                                Page {pagination.page} of {pagination.totalPages}
-                            </span>
-                            <button
-                                onClick={() => handlePageChange(pagination.page + 1)}
-                                disabled={pagination.page >= pagination.totalPages}
-                                className="pagination-btn"
-                            >
-                                Next &raquo;
-                            </button>
-                        </div>
-                    )}
                 </>
             )}
         </div>
