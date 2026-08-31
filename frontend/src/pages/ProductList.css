@@ -241,6 +241,45 @@
   opacity: 1;
 }
 
+/* ─── Pagination Controls ─── */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 16px 0;
+}
+
+.pagination-btn {
+  padding: 8px 18px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #25252e;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #4d6bfe;
+  color: #fff;
+  border-color: #4d6bfe;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 0.95rem;
+  color: #a0aec0;
+  font-weight: 500;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 720px) {
   .product-container {

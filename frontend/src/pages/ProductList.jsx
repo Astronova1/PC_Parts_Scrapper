@@ -6,13 +6,20 @@ export default function ProductList() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const categoryId = searchParams.get('category');
+    const pageParam = parseInt(searchParams.get('page') || '1', 10);
+    const page = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
-    // State for multiple expanded products
+    const [pagination, setPagination] = useState({
+        totalCount: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1
+    });
+
     const [expandedProducts, setExpandedProducts] = useState([]);
-
-    // Toggle a single product
     const toggleExpand = (productId) => {
         setExpandedProducts(prev =>
             prev.includes(productId)
@@ -20,18 +27,12 @@ export default function ProductList() {
                 : [...prev, productId]
         );
     };
-
-    // Expand all products
     const expandAll = () => {
         setExpandedProducts(products.map(p => p.productId));
     };
-
-    // Collapse all products
     const collapseAll = () => {
         setExpandedProducts([]);
     };
-
-    // Check if all products are expanded
     const allExpanded = products.length > 0 && expandedProducts.length === products.length;
 
     useEffect(() => {
@@ -39,13 +40,29 @@ export default function ProductList() {
             try {
                 setLoading(true);
                 setError(null);
-                const url = categoryId
-                    ? `/api/product?category=${encodeURIComponent(categoryId)}`
-                    : '/api/product';
+
+                const params = new URLSearchParams();
+                if (categoryId) params.append('category', categoryId);
+                params.append('page', page);
+                params.append('pageSize', '20');
+
+                const url = `/api/product?${params.toString()}`;
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const result = await response.json();
-                setProducts(result);
+
+                if (result && Array.isArray(result.items)) {
+                    setProducts(result.items);
+                    setPagination({
+                        totalCount: result.totalCount,
+                        page: result.page,
+                        pageSize: result.pageSize,
+                        totalPages: result.totalPages
+                    });
+                } else if (Array.isArray(result)) {
+                    // Fallback in case endpoint returns array
+                    setProducts(result);
+                }
             } catch (err) {
                 console.error('Error Fetching data: ', err);
                 setError(err.message);
@@ -54,7 +71,15 @@ export default function ProductList() {
             }
         };
         fetchData();
-    }, [categoryId]);
+    }, [categoryId, page]);
+
+    const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > pagination.totalPages) return;
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('page', newPage);
+        setSearchParams(newParams);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     if (loading) return <div className="loading">Loading hardware....</div>;
     if (error) return <div className="error"> Error: {error} </div>;
@@ -65,7 +90,6 @@ export default function ProductList() {
                 <p className="no-products">No Products Found</p>
             ) : (
                 <>
-                    {/* Expand / Collapse Controls */}
                     <div className="expand-controls">
                         <button onClick={expandAll} disabled={allExpanded}>
                             Expand All
@@ -80,7 +104,6 @@ export default function ProductList() {
 
                     <div className="product-list">
                         {products.map(product => {
-                            // Compute lowest price
                             const prices = product.listings
                                 .map(l => Number(l.latestPrice))
                                 .filter(p => !isNaN(p) && p > 0);
@@ -89,7 +112,6 @@ export default function ProductList() {
 
                             return (
                                 <article key={product.productId} className="product-card">
-                                    {/* Clickable Header */}
                                     <div
                                         className="product-header"
                                         onClick={() => toggleExpand(product.productId)}
@@ -106,8 +128,6 @@ export default function ProductList() {
                                             ▸
                                         </span>
                                     </div>
-
-                                    {/* Expandable Listings */}
                                     <div className={`listings-wrapper ${isExpanded ? 'open' : ''}`}>
                                         <div className="listings">
                                             <div className="listing-header">
@@ -171,6 +191,28 @@ export default function ProductList() {
                             );
                         })}
                     </div>
+
+                    {pagination.totalPages > 1 && (
+                        <div className="pagination-controls">
+                            <button
+                                onClick={() => handlePageChange(pagination.page - 1)}
+                                disabled={pagination.page <= 1}
+                                className="pagination-btn"
+                            >
+                                &laquo; Previous
+                            </button>
+                            <span className="pagination-info">
+                                Page {pagination.page} of {pagination.totalPages}
+                            </span>
+                            <button
+                                onClick={() => handlePageChange(pagination.page + 1)}
+                                disabled={pagination.page >= pagination.totalPages}
+                                className="pagination-btn"
+                            >
+                                Next &raquo;
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
         </div>

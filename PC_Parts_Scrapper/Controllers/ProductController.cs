@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Models;
@@ -16,15 +16,24 @@ namespace PC_Parts_Scrapper.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> getProducts([FromQuery] int? category) //get category all or from url params if avaiable from the
-                                                                               //frontend ProductList.jsx
+        public async Task<IActionResult> getProducts([FromQuery] int? category, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 1;
+            if (pageSize > 100) pageSize = 100;
+
             var query = _context.Products.AsQueryable();
             if (category.HasValue)
             {
                 query = query.Where(p => p.CategoryId == category);
             }
-                var result = await query
+
+            int totalCount = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            var result = await query
+           .Skip((page - 1) * pageSize)
+           .Take(pageSize)
            .Select(p => new ProductDisplayViewModel
            {
                ProductId = p.ProductId,
@@ -47,8 +56,14 @@ namespace PC_Parts_Scrapper.Controllers
            })
            .ToListAsync();
 
-                return Ok(result);
-
+            return Ok(new
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                Items = result
+            });
         }
 
             [HttpGet("{ScrapedItemId}/history")]
