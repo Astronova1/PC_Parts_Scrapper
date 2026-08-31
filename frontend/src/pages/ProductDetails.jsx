@@ -3,6 +3,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import './ProductDetails.css';
 
 export default function ProductDetails() {
     const { id } = useParams(); 
@@ -40,7 +41,6 @@ export default function ProductDetails() {
                 setLoading(true);
                 setError(null);
 
-                // Fetch product details
                 const productResponse = await fetch(`/api/product/${id}`);
                 if (productResponse.ok) {
                     const productData = await productResponse.json();
@@ -50,8 +50,8 @@ export default function ProductDetails() {
                 }
 
                 const historyUrl = scrapedItemId
-                    ? `/api/product/${scrapedItemId}/history`  // Single-store history
-                    : `/api/product/${id}/history`;            // Fallback to all stores
+                    ? `/api/product/${scrapedItemId}/history`
+                    : `/api/product/${id}/history`;
                 
                 const response = await fetch(historyUrl);
                 if (!response.ok) {
@@ -161,6 +161,12 @@ export default function ProductDetails() {
 
     if (loading) return <p>Loading chart...</p>;
 
+    // Determine if we have many data points for optimization
+    const hasManyPoints = history.length > 50;
+    const chartHeight = window.innerWidth < 768 ? 250 : 400;
+    const yAxisWidth = 70;
+    const tickInterval = hasManyPoints ? Math.floor(history.length / 12) : 0;
+
     return (
         <div style={{ padding: '20px' }}>
             <Link to="/" style={{ display: 'inline-block', marginBottom: '20px', textDecoration: 'none', color: '#007bff' }}>
@@ -219,33 +225,72 @@ export default function ProductDetails() {
                 {alertMessage && <p style={{ marginTop: '8px' }}>{alertMessage}</p>}
             </div>
 
+            {/* --- IMPROVED PRICE HISTORY CHART --- */}
             <h2>Price History {storeName ? `— ${storeName}` : ''}</h2>
             
             {error && <p style={{ color: 'red' }}>{error}</p>}
             
             {history.length > 0 ? (
-                <div style={{ width: '100%', height: 400 }}>
-                    <ResponsiveContainer>
-                        <LineChart data={history}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis 
-                                dataKey="checkedAt" 
-                                tickFormatter={(time) => new Date(time).toLocaleDateString()} 
-                            />
-                            <YAxis tickFormatter={(price) => `PKR ${Number(price).toFixed(2)}`} />
-                            <Tooltip 
-                                labelFormatter={(label) => new Date(label).toLocaleString()}
-                                formatter={(value) => [`Rs. ${Number(value).toFixed(2)}`, "Price"]}
-                            />
-                            <Line 
-                                type="monotone" 
-                                dataKey="price" 
-                                stroke="#ff4d4d" 
-                                strokeWidth={2} 
-                                dot={{ r: 4 }} 
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                <div className="chart-scroll-wrapper">
+                    <div className="chart-inner-wrapper">
+                        <ResponsiveContainer 
+                            width="100%" 
+                            height={chartHeight}
+                            minWidth={hasManyPoints ? Math.max(600, history.length * 12) : 400}
+                        >
+                            <LineChart 
+                                data={history}
+                                margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                                
+                                <XAxis 
+                                    dataKey="checkedAt" 
+                                    tickFormatter={(time) => new Date(time).toLocaleDateString()} 
+                                    interval={tickInterval}
+                                    angle={history.length > 20 ? -45 : 0}
+                                    textAnchor={history.length > 20 ? "end" : "middle"}
+                                    height={history.length > 20 ? 60 : 30}
+                                    tick={{ fill: '#aaa', fontSize: 11 }}
+                                    stroke="#666"
+                                />
+                                
+                                <YAxis 
+                                    tickFormatter={(price) => `PKR ${Number(price).toFixed(0)}`}
+                                    width={yAxisWidth}
+                                    tick={{ fill: '#aaa', fontSize: 11 }}
+                                    stroke="#666"
+                                    domain={['auto', 'auto']}
+                                />
+                                
+                                <Tooltip 
+                                    labelFormatter={(label) => new Date(label).toLocaleString()}
+                                    formatter={(value) => [`Rs. ${Number(value).toFixed(2)}`, "Price"]}
+                                    contentStyle={{
+                                        backgroundColor: '#1e1e24',
+                                        borderColor: '#444',
+                                        color: '#e0e0e0'
+                                    }}
+                                    labelStyle={{ color: '#e0e0e0' }}
+                                />
+                                
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="price" 
+                                    stroke="#ff4d4d" 
+                                    strokeWidth={hasManyPoints ? 1.5 : 2} 
+                                    dot={hasManyPoints ? false : { r: 3 }}
+                                    isAnimationActive={!hasManyPoints}
+                                    activeDot={{ r: 5 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                    {hasManyPoints && (
+                        <div className="chart-scroll-hint">
+                            ← Scroll to see full history →
+                        </div>
+                    )}
                 </div>
             ) : (
                 <p>No price records found yet. Check back later!</p>

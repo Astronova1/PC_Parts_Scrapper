@@ -1,0 +1,60 @@
+/* ─── Chart Scroll Wrapper ─── */
+.chart-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    border-radius: 8px;
+}
+
+.chart-scroll-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.chart-scroll-wrapper::-webkit-scrollbar-track {
+    background: #2a2a33;
+    border-radius: 4px;
+}
+
+.chart-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #4d6bfe;
+    border-radius: 4px;
+}
+
+.chart-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #3b5de7;
+}
+
+.chart-inner-wrapper {
+    min-width: 100%;
+    width: fit-content;
+    height: 100%;
+}
+
+/* ─── Scroll Hint ─── */
+.chart-scroll-hint {
+    text-align: center;
+    color: #6c757d;
+    font-size: 0.8rem;
+    padding: 6px 0 4px 0;
+    animation: pulse-hint 2s ease-in-out infinite;
+}
+
+@keyframes pulse-hint {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ─── Mobile Adjustments ─── */
+@media (max-width: 768px) {
+    .chart-scroll-wrapper {
+        margin: 0 -12px;
+        padding: 0 12px;
+        border-radius: 0;
+    }
+    
+    .chart-scroll-hint {
+        font-size: 0.7rem;
+    }
+}
