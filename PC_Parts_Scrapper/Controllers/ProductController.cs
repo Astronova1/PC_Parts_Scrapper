@@ -16,7 +16,7 @@ namespace PC_Parts_Scrapper.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> getProducts([FromQuery] int? category, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> getProducts([FromQuery] int? category, [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 1;
@@ -26,6 +26,12 @@ namespace PC_Parts_Scrapper.Controllers
             if (category.HasValue)
             {
                 query = query.Where(p => p.CategoryId == category);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var normalizedSearch = search.Trim();
+                query = query.Where(p => EF.Functions.ILike(p.Name, $"%{normalizedSearch}%"));
             }
 
             int totalCount = await query.CountAsync();
