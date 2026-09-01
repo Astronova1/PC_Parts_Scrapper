@@ -11,10 +11,11 @@ export default function ProductList() {
     const navigate = useNavigate();
 
     const categoryId = searchParams.get('category');
+    const searchQuery = searchParams.get('search');
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
-    const getScrollKey = () => `productListScrollY_${categoryId || 'all'}_${currentPage}`;
+    const getScrollKey = () => `productListScrollY_${categoryId || 'all'}_${searchQuery || 'all'}_${currentPage}`;
 
     const saveScrollPosition = () => {
         sessionStorage.setItem(getScrollKey(), String(window.scrollY));
@@ -112,10 +113,12 @@ export default function ProductList() {
 
                 const params = new URLSearchParams();
                 if (categoryId) params.append('category', categoryId);
+                if (searchQuery) params.append('search', searchQuery);
                 params.append('page', currentPage);
                 params.append('pageSize', '20');
 
                 const url = `/api/product?${params.toString()}`;
+                console.log('Fetching products with URL:', url);
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const result = await response.json();
@@ -139,7 +142,7 @@ export default function ProductList() {
             }
         };
         fetchData();
-    }, [categoryId, currentPage]);
+    }, [categoryId, searchQuery, currentPage]);
 
     const toggleExpand = (productId) => {
         setExpandedProducts(prev =>
