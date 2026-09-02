@@ -60,10 +60,25 @@ A full-stack web application that scrapes PC component prices from Pakistani onl
 - **Playwright** – web scraping automation
 - **HtmlAgilityPack** – HTML parsing for scraping
 
-### Infrastructure
-- **Docker** – containerization
-- **Oracle Cloud** – production deployment
-- **Nginx** – reverse proxy (production)
+## 🚀 Deployment
+
+The application is live and self-hosted on an **Oracle Cloud ARM VM** (Ubuntu, 24 GB RAM).
+
+Everything runs in **Docker Compose** with four services:
+
+| Service       | Role                                                        |
+| ------------- | ----------------------------------------------------------- |
+| `postgres-db` | PostgreSQL 16 — products, price history, users, alerts      |
+| `backend`     | .NET 8 Web API + headless Playwright (Firefox) price scraper |
+| `frontend`    | React (Vite) build served by nginx                          |
+| `flaresolverr`| Cloudflare challenge solver for protected stores            |
+
+- nginx reverse-proxies `/api/*` to the backend container.
+- EF Core migrations are applied automatically on backend startup.
+- Deploy flow: `git push` → `git pull` on the VM → `docker compose up -d --build`.
+- Sensitive config (DB credentials, JWT secret) is injected via a `.env` file that is **not** committed to this repository.
+
+### LINK: https://findpcparts.app/
 
 ### Prerequisites
 - .NET 8 SDK
@@ -71,14 +86,17 @@ A full-stack web application that scrapes PC component prices from Pakistani onl
 - PostgreSQL (or use Docker)
 - Docker (optional)
 
-🔧 API Endpoints
-GET	    /api/product      	          Get products (with pagination & category filter)
-GET	    /api/product/{id}	            Get product details
-GET	    /api/product/{id}/history	    Get price history
-POST	  /api/auth/register	          Register a new user
-POST	  /api/auth/login	              Login and get JWT token
-GET	    /api/alerts	                  Get user's price alerts
-POST	  /api/alerts	                  Create a price alert
-DELETE	/api/alerts/{id}	            Delete a price alert
-GET	    /api/notifications	          Get user's notifications
-POST	  /api/notifications/{id}/read	Mark notification as read
+### 🔌 API Endpoints
+
+| Method | Endpoint                       | Description                                  |
+|--------|--------------------------------|----------------------------------------------|
+| GET    | `/api/product`                 | Get products (with pagination & category filter) |
+| GET    | `/api/product/{id}`            | Get product details                          |
+| GET    | `/api/product/{id}/history`    | Get price history                            |
+| POST   | `/api/auth/register`           | Register a new user                          |
+| POST   | `/api/auth/login`              | Login and get JWT token                      |
+| GET    | `/api/alerts`                  | Get user's price alerts                      |
+| POST   | `/api/alerts`                  | Create a price alert                         |
+| DELETE | `/api/alerts/{id}`             | Delete a price alert                         |
+| GET    | `/api/notifications`           | Get user's notifications                     |
+| POST   | `/api/notifications/{id}/read` | Mark notification as read                    |
