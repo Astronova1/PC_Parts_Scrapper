@@ -1,6 +1,8 @@
 # 🖥️ PC Parts Scrapper
 
+
 A full-stack web application that scrapes PC component prices from Pakistani online stores, tracks price history, and notifies users when prices drop below their target.
+### LINK: https://findpcparts.app/
 
 ## ✨ Features
 
@@ -77,8 +79,6 @@ Everything runs in **Docker Compose** with four services:
 - EF Core migrations are applied automatically on backend startup.
 - Deploy flow: `git push` → `git pull` on the VM → `docker compose up -d --build`.
 - Sensitive config (DB credentials, JWT secret) is injected via a `.env` file that is **not** committed to this repository.
-
-### LINK: https://findpcparts.app/
 
 ### Prerequisites
 - .NET 8 SDK
