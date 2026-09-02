@@ -441,3 +441,6 @@ build/
 npm-debug.log*
 .env
 .env.local
+
+# Python
+.idea/
