@@ -12,6 +12,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         ws: true,
+      },
+      '/predict-api': {
+      target: 'http://localhost:8000',
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/predict-api/, '')
       }
     }
   },
