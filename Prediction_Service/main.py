@@ -11,16 +11,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PC Parts Price Prediction", version="1.0.0")
-#
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=[
-#         "http://localhost:5173",
-#         "https://your-production-frontend.com",
-#     ],
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://your-production-frontend.com",
+    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 MIN_DATA_POINTS = 5
 
@@ -53,8 +53,7 @@ def predict(request: PredictionRequest):
         df = pd.DataFrame([
             {"ds": p.ds, "y": float(p.y)} for p in request.history
         ])
-        df["ds"] = pd.to_datetime(df["ds"])
-
+        df['ds'] = pd.to_datetime(df['ds']).dt.tz_localize(None)
         df = df.sort_values("ds").drop_duplicates(subset="ds", keep="last").reset_index(drop=True)
 
         if len(df) < MIN_DATA_POINTS:
@@ -64,16 +63,19 @@ def predict(request: PredictionRequest):
             )
 
         forecast_df, model_info = train_and_forecast(df, request.forecast_days)
+        # Convert to dictionaries to avoid Pandas/Pydantic type crashes
+        forecast_records = forecast_df.to_dict(orient="records")
 
-        forecast_points = [
-            ForecastPoint(
-                ds=row.ds.to_pydatetime(),
-                yhat=round(float(row.yhat), 2),
-                yhat_lower=round(float(row.yhat_lower), 2),
-                yhat_upper=round(float(row.yhat_upper), 2),
+        forecast_points = []
+        for rec in forecast_records:
+            forecast_points.append(
+                ForecastPoint(
+                    ds=pd.Timestamp(rec["ds"]).to_pydatetime(),
+                    yhat=round(float(rec["yhat"]), 2),
+                    yhat_lower=round(float(rec["yhat_lower"]), 2),
+                    yhat_upper=round(float(rec["yhat_upper"]), 2),
+                )
             )
-            for _, row in forecast_df.iterrows()
-        ]
 
         response = PredictionResponse(
             scraped_item_id=request.scraped_item_id,
@@ -92,7 +94,10 @@ def predict(request: PredictionRequest):
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         logger.error(f"Prediction failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Prediction service error")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Prediction service error: {type(e).__name__}: {e}",
+        )
 
 
 if __name__ == "__main__":
