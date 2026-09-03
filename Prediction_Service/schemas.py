@@ -11,7 +11,7 @@ class PricePoint(BaseModel):
 class PredictionRequest(BaseModel):
     scraped_item_id: int
     product_name: Optional[str] = None
-    history: List[PricePoint] = Field(..., min_items=5)
+    history: List[PricePoint] = Field(..., min_length=5)
     forecast_days: int = Field(default=7, ge=1, le=30)
 
 
