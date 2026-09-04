@@ -75,6 +75,7 @@ builder.Services.AddHostedService<ScrapperWorker>();
 builder.Services.AddTransient<HtmlScraperService>();
 builder.Services.AddControllers();
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient<PredictionService>();
 
 var app = builder.Build();
 
