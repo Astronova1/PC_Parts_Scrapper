@@ -33,6 +33,7 @@ services:
       - JwtSettings__Issuer=https://findpcparts.app
       - JwtSettings__Audience=https://findpcparts.app
       - JwtSettings__ExpiryMinutes=60
+      - PredictionService__BaseUrl=http://prediction:8000	
     ports:
       - "8080:8080"
     volumes:
@@ -40,6 +41,8 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
+      prediction:
+	condition: service_started
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -51,6 +54,18 @@ services:
       - CAPTCHA_SOLVER=none
     ports:
       - "8191:8191"
+
+  # 3. Python Prophet Prediction Service
+  prediction:
+    build:
+      context: ./prediction_service
+      dockerfile: Dockerfile
+    container_name: pcparts_prediction
+    restart: always
+    ports:
+      - "8000:80000"
+    environment:
+      - PYTHONNUNBUFFERED=1 
 
   # 4. React Frontend Service
   frontend:
