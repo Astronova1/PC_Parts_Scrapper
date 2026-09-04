@@ -13,10 +13,10 @@ export default defineConfig({
         secure: false,
         ws: true,
       },
-      '/predict-api': {
+      '/predict': {
       target: 'http://localhost:8000',
       changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/predict-api/, '')
+      rewrite: (path) => path.replace(/^\/predict/, '')
       }
     }
   },
