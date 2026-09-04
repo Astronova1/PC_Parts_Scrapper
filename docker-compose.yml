@@ -58,7 +58,7 @@ services:
   # 3. Python Prophet Prediction Service
   prediction:
     build:
-      context: ./prediction_service
+      context: ./Prediction_Service
       dockerfile: Dockerfile
     container_name: pcparts_prediction
     restart: always
