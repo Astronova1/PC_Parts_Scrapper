@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, Legend } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import './ProductDetails.css';
@@ -20,6 +20,11 @@ export default function ProductDetails() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
+    // Prediction States
+    const [prediction, setPrediction] = useState(null);
+    const [predictionError, setPredictionError] = useState(null);
+    const [showPrediction, setShowPrediction] = useState(true);
+
     const [targetPrice, setTargetPrice] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
     const [alert, setAlert] = useState(null);
@@ -35,7 +40,7 @@ export default function ProductDetails() {
     }, [token]);
 
     useEffect(() => {
-        const fetchHistory = async () => {
+        const fetchAllData = async () => {
             if (!id) return; 
             
             try {
@@ -66,6 +71,24 @@ export default function ProductDetails() {
                     setHistory(data);
                 }
 
+                try {
+                    const predictUrl = scrapedItemId
+                        ? `/api/product/${scrapedItemId}/predict?days=7`
+                        : `/api/product/${id}/predict?days=7`;
+                    
+                    const predRes = await fetch(predictUrl);
+                    if (predRes.ok) {
+                        const predData = await predRes.json();
+                        setPrediction(predData);
+                    } else {
+                        const err = await predRes.json().catch(() => ({}));
+                        setPredictionError(err.error || 'Prediction unavailable');
+                    }
+                } catch (predErr) {
+                    console.error('Prediction fetch failed:', predErr);
+                    setPredictionError('Prediction service offline');
+                }
+
                 if (isAuthenticated && token && id) {
                     try {
                         const alerts = await getAlerts();
@@ -84,7 +107,7 @@ export default function ProductDetails() {
             }
         };
 
-        fetchHistory();
+        fetchAllData();
     }, [id, scrapedItemId, isAuthenticated, token, getAlerts]);
 
     const saveAlert = async () => {
@@ -165,14 +188,41 @@ export default function ProductDetails() {
     const hasManyPoints = history.length > 50;
     const chartHeight = window.innerWidth < 768 ? 250 : 400;
     const yAxisWidth = 70;
-    const tickInterval = hasManyPoints ? Math.floor(history.length / 12) : 0;
+    
+    // Combine History + Prediction for Chart
+    const chartData = [
+        ...history.map(h => ({
+            checkedAt: h.checkedAt,
+            actual: h.price,
+            predicted: null,
+            yhatLower: null,
+            yhatUpper: null,
+        })),
+        ...(history.length > 0 && prediction?.forecasts?.length > 0 ? [{
+            checkedAt: history[history.length - 1].checkedAt,
+            actual: null,
+            predicted: history[history.length - 1].price,
+            yhatLower: null,
+            yhatUpper: null,
+        }] : []),
+        ...(prediction?.forecasts?.map(f => ({
+            checkedAt: f.ds,
+            actual: null,
+            predicted: f.yhat,
+            yhatLower: f.yhatLower,
+            yhatUpper: f.yhatUpper,
+        })) ?? []),
+    ];
+
+    const tickInterval = hasManyPoints ? Math.floor(chartData.length / 12) : 0;
+    const isGoingUp = prediction?.modelInfo?.trendDirection === 'up';
 
     return (
         <div style={{ padding: '20px' }}>
             <button 
-            onClick={() => navigate(-1)} 
-            style={{ display: 'inline-block', marginBottom: '20px', textDecoration: 'none', color: '#007bff', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}>
-            &larr; Back to Products
+                onClick={() => navigate(-1)} 
+                style={{ display: 'inline-block', marginBottom: '20px', textDecoration: 'none', color: '#007bff', background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}>
+                &larr; Back to Products
             </button>
 
             <h2>{product?.name || 'Unknown Product'}</h2>
@@ -226,72 +276,148 @@ export default function ProductDetails() {
                 {alertMessage && <p style={{ marginTop: '8px' }}>{alertMessage}</p>}
             </div>
 
-            <h2>Price History {storeName ? `— ${storeName}` : ''}</h2>
+            <div className="chart-header">
+                <h2>Price History {storeName ? `— ${storeName}` : ''}</h2>
+                {prediction && (
+                    <div className="prediction-badge">
+                        <span className={`trend ${isGoingUp ? 'up' : 'down'}`}>
+                            {isGoingUp ? '📈 Predicted: Going Up' : '📉 Predicted: Going Down'}
+                        </span>
+                        <label className="toggle">
+                            <input
+                                type="checkbox"
+                                checked={showPrediction}
+                                onChange={e => setShowPrediction(e.target.checked)}
+                            />
+                            Show Prediction
+                        </label>
+                    </div>
+                )}
+            </div>
             
             {error && <p style={{ color: 'red' }}>{error}</p>}
             
             {history.length > 0 ? (
-                <div className="chart-scroll-wrapper">
-                    <div className="chart-inner-wrapper">
-                        <ResponsiveContainer 
-                            width="100%" 
-                            height={chartHeight}
-                            minWidth={hasManyPoints ? Math.max(600, history.length * 12) : 400}
-                        >
-                            <LineChart 
-                                data={history}
-                                margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                                
-                                <XAxis 
-                                    dataKey="checkedAt" 
-                                    tickFormatter={(time) => new Date(time).toLocaleDateString()} 
-                                    interval={tickInterval}
-                                    angle={history.length > 20 ? -45 : 0}
-                                    textAnchor={history.length > 20 ? "end" : "middle"}
-                                    height={history.length > 20 ? 60 : 30}
-                                    tick={{ fill: '#aaa', fontSize: 11 }}
-                                    stroke="#666"
-                                />
-                                
-                                <YAxis 
-                                    tickFormatter={(price) => `PKR ${Number(price).toFixed(0)}`}
-                                    width={yAxisWidth}
-                                    tick={{ fill: '#aaa', fontSize: 11 }}
-                                    stroke="#666"
-                                    domain={['auto', 'auto']}
-                                />
-                                
-                                <Tooltip 
-                                    labelFormatter={(label) => new Date(label).toLocaleString()}
-                                    formatter={(value) => [`Rs. ${Number(value).toFixed(2)}`, "Price"]}
-                                    contentStyle={{
-                                        backgroundColor: '#1e1e24',
-                                        borderColor: '#444',
-                                        color: '#e0e0e0'
-                                    }}
-                                    labelStyle={{ color: '#e0e0e0' }}
-                                />
-                                
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="price" 
-                                    stroke="#ff4d4d" 
-                                    strokeWidth={hasManyPoints ? 1.5 : 2} 
-                                    dot={hasManyPoints ? false : { r: 3 }}
-                                    isAnimationActive={!hasManyPoints}
-                                    activeDot={{ r: 5 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                    {hasManyPoints && (
-                        <div className="chart-scroll-hint">
-                            ← Scroll to see full history →
+                <>
+                    {predictionError && (
+                        <div className="prediction-warning">
+                             {predictionError} (Need at least 5 historical points)
                         </div>
                     )}
-                </div>
+                    <div className="chart-scroll-wrapper">
+                        <div className="chart-inner-wrapper">
+                            <ResponsiveContainer 
+                                width="100%" 
+                                height={chartHeight}
+                                minWidth={hasManyPoints ? Math.max(600, chartData.length * 12) : 400}
+                            >
+                                <LineChart 
+                                    data={chartData}
+                                    margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                                    
+                                    <XAxis 
+                                        dataKey="checkedAt" 
+                                        tickFormatter={(time) => new Date(time).toLocaleDateString()} 
+                                        interval={tickInterval}
+                                        angle={chartData.length > 20 ? -45 : 0}
+                                        textAnchor={chartData.length > 20 ? "end" : "middle"}
+                                        height={chartData.length > 20 ? 60 : 30}
+                                        tick={{ fill: '#aaa', fontSize: 11 }}
+                                        stroke="#666"
+                                    />
+                                    
+                                    <YAxis 
+                                        tickFormatter={(price) => `PKR ${Number(price).toFixed(0)}`}
+                                        width={yAxisWidth}
+                                        tick={{ fill: '#aaa', fontSize: 11 }}
+                                        stroke="#666"
+                                        domain={['auto', 'auto']}
+                                    />
+                                    
+                                    <Tooltip 
+                                        labelFormatter={(label) => new Date(label).toLocaleString()}
+                                        formatter={(value, name) => {
+                                            if (value === null || value === undefined) return ['-', name];
+                                            const formatted = `Rs. ${Number(value).toFixed(2)}`;
+                                            const labelName = name === 'actual' ? 'Actual Price' : name === 'predicted' ? 'Predicted' : name;
+                                            return [formatted, labelName];
+                                        }}
+                                        contentStyle={{
+                                            backgroundColor: '#1e1e24',
+                                            borderColor: '#444',
+                                            color: '#e0e0e0'
+                                        }}
+                                        labelStyle={{ color: '#e0e0e0' }}
+                                    />
+                                    <Legend formatter={(value) => value === 'actual' ? 'Actual Price' : 'Predicted Price'} />
+
+                                    {/* Confidence Interval Area */}
+                                    {showPrediction && prediction && (
+                                        <Area
+                                            type="monotone"
+                                            dataKey="yhatUpper"
+                                            stroke="none"
+                                            fill="#ef4444"
+                                            fillOpacity={0.1}
+                                            name="Confidence Upper"
+                                        />
+                                    )}
+                                    {showPrediction && prediction && (
+                                        <Area
+                                            type="monotone"
+                                            dataKey="yhatLower"
+                                            stroke="none"
+                                            fill="#1e1e24"
+                                            fillOpacity={1}
+                                            name="Confidence Lower"
+                                        />
+                                    )}
+                                    
+                                    <Line 
+                                        type="monotone" 
+                                        dataKey="actual" 
+                                        stroke="#4d6bfe" 
+                                        strokeWidth={hasManyPoints ? 1.5 : 2} 
+                                        dot={hasManyPoints ? false : { r: 3 }}
+                                        isAnimationActive={!hasManyPoints}
+                                        activeDot={{ r: 5 }}
+                                        connectNulls={false}
+                                    />
+                                    
+                                    {showPrediction && prediction && (
+                                        <Line 
+                                            type="monotone" 
+                                            dataKey="predicted" 
+                                            stroke="#ff4d4d" 
+                                            strokeWidth={2} 
+                                            strokeDasharray="6 4"
+                                            dot={false}
+                                            isAnimationActive={true}
+                                            connectNulls={true}
+                                        />
+                                    )}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                        {hasManyPoints && (
+                            <div className="chart-scroll-hint">
+                                ← Scroll to see full history →
+                            </div>
+                        )}
+                    </div>
+                    
+                    {prediction && (
+                        <div className="prediction-info">
+                            <small>
+                                Model trained on {prediction.modelInfo.dataPoints} data points
+                                ({prediction.modelInfo.dateRange}) •
+                                Confidence: {prediction.modelInfo.confidenceInterval}
+                            </small>
+                        </div>
+                    )}
+                </>
             ) : (
                 <p>No price records found yet. Check back later!</p>
             )}
