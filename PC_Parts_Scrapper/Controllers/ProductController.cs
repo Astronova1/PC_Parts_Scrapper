@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PC_Parts_Scrapper.Data;
 using PC_Parts_Scrapper.Models;
+using PC_Parts_Scrapper.Services;
 using PC_Parts_Scrapper.ViewModels;
 namespace PC_Parts_Scrapper.Controllers
 {
@@ -113,6 +114,48 @@ namespace PC_Parts_Scrapper.Controllers
                 return NotFound();
             }
             return Ok(product);
+        }
+
+        [HttpGet("{scrapedItemId}/predict")]
+        public async Task<ActionResult<PredictionResponseDto>> GetPrediction(
+    int scrapedItemId,
+    [FromServices] PredictionService predictionService,
+    [FromQuery] int days = 7)
+        {
+            var scrapedItem = await _context.ScrapedItems
+                .Include(si => si.Product)
+                .FirstOrDefaultAsync(si => si.ScrapedItemId == scrapedItemId);
+
+            if (scrapedItem == null) return NotFound();
+
+            var history = await _context.PriceHistory
+                .Where(ph => ph.ScrapedItemId == scrapedItemId)
+                .OrderBy(ph => ph.CheckedAt)
+                .ToListAsync();
+
+            if (history.Count < 5)
+                return BadRequest(new
+                {
+                    error = "Insufficient historical data",
+                    dataPoints = history.Count,
+                    minimumRequired = 5
+                });
+
+            var historyData = history
+                .Select(h => (h.CheckedAt.UtcDateTime, h.Price))
+                .ToList();
+
+            var prediction = await predictionService.GetPredictionAsync(
+                scrapedItemId,
+                scrapedItem.Product?.Name ?? "",
+                historyData,
+                days
+            );
+
+            if (prediction == null)
+                return StatusCode(500, "Prediction service unavailable");
+
+            return Ok(prediction);
         }
     }
 }

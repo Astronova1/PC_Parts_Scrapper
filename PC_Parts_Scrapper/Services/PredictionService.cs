@@ -1,11 +1,20 @@
 ﻿using PC_Parts_Scrapper.Models;
 using PC_Parts_Scrapper.ViewModels;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace PC_Parts_Scrapper.Services;
 
 public class PredictionService
 {
+    // Use snake_case when sending and reading JSON,
+    // and ignore differences in uppercase/lowercase property names.
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly HttpClient _httpClient;
     private readonly ILogger<PredictionService> _logger;
 
@@ -48,7 +57,7 @@ public class PredictionService
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("/predict", request);
+            var response = await _httpClient.PostAsJsonAsync("/predict", request, _jsonOptions);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError(
@@ -57,7 +66,7 @@ public class PredictionService
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<PredictionResponseDto>();
+            return await response.Content.ReadFromJsonAsync<PredictionResponseDto>(_jsonOptions);
         }
         catch (Exception ex)
         {
