@@ -33,7 +33,7 @@ services:
       - JwtSettings__Issuer=https://findpcparts.app
       - JwtSettings__Audience=https://findpcparts.app
       - JwtSettings__ExpiryMinutes=60
-      - PredictionService__BaseUrl=http://prediction:8000	
+      - PredictionService__BaseUrl=http://prediction:8000
     ports:
       - "8080:8080"
     volumes:
@@ -42,7 +42,7 @@ services:
       postgres-db:
         condition: service_healthy
       prediction:
-	condition: service_started
+        condition: service_started
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -63,9 +63,9 @@ services:
     container_name: pcparts_prediction
     restart: always
     ports:
-      - "8000:80000"
+      - "8000:8000"
     environment:
-      - PYTHONNUNBUFFERED=1 
+      - PYTHONUNBUFFERED=1
 
   # 4. React Frontend Service
   frontend:
@@ -79,7 +79,6 @@ services:
     depends_on:
       - backend
 
-# Persistent Named Volumes
 volumes:
   postgres_data:
   playwright_profile:
