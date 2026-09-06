@@ -191,10 +191,10 @@ namespace PC_Parts_Scrapper.Services
         public async Task ScrapStores() 
         {
             var cpu_link = "https://www.czone.com.pk/processors-pakistan-ppt.85.aspx";  //CZone website link
-            string pattern = @"(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
+            string pattern = @"(?i)(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*([iI]\d|\d)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
 
             var gpu_link = "https://www.czone.com.pk/graphic-cards-pakistan-ppt.154.aspx";  //CZone gpu link
-            string pattern_gpu = @"(RTX|GTX|RX)\s+\d{1,4}\s*(Ti|XT|XTX)?";
+            string pattern_gpu = @"(?i)(RTX|GTX|RX|GT)\s*\d{1,4}\s*(Ti|XT|XTX)?";
 
             await Czone(cpu_link, pattern, "CPU");
             await Czone(gpu_link, pattern_gpu, "GPU");
@@ -276,7 +276,6 @@ namespace PC_Parts_Scrapper.Services
                     }
                 }
 
-                // Grab fully expanded HTML DOM
                 string html_con = await page.ContentAsync();
 
                 var doc = new HtmlDocument();
@@ -342,93 +341,157 @@ namespace PC_Parts_Scrapper.Services
             }
         }
 
+
         public async Task ZahComputers(string url, string pattern, string category_name)
         {
-            Console.WriteLine($"[ZahComputers] Asking FlareSolverr to bypass Cloudflare for: {url}");
+            Console.WriteLine($"[ZahComputers] Starting Playwright for: {url}");
 
-            string flareSolverrUrl = _configuration["FlareSolverr:BaseUrl"] ?? "http://localhost:8191/v1";
+            using var playwright = await Playwright.CreateAsync();
 
-            var payload = new
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright_profile");
+            bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+
+            var context = await playwright.Firefox.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                cmd = "request.get",
-                url = url,
-                maxTimeout = 60000 
-            };
+                Headless = !isDevelopment, // Show browser in development
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+                FirefoxUserPrefs = new Dictionary<string, object>
+        {
+            { "security.sandbox.content.level", 0 }
+        }
+            });
 
-            string jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
-            using var client = new HttpClient();
-            var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+            var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
+
+            await page.AddInitScriptAsync(@"
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    ");
 
             try
             {
-                var response = await client.PostAsync(flareSolverrUrl, content);
+                Console.WriteLine($"[ZahComputers] Navigating to: {url}");
+                await page.GotoAsync(url, new PageGotoOptions { Timeout = 60000 });
 
-                
-                var result = await response.Content.ReadFromJsonAsync<FlareSolverrResponse>();
+                await page.WaitForSelectorAsync(".product-element-bottom", new PageWaitForSelectorOptions { Timeout = 60000 });
 
-                
-                if (result?.Status == "ok" && result.Solution != null)
+                int scrollHeight = 0;
+                int maxScrollAttempts = 20;
+                int attempt = 0;
+
+                while (attempt < maxScrollAttempts)
                 {
-                    string html = result.Solution.Response;
-                    var doc = new HtmlDocument();
-                    doc.LoadHtml(html);
+                    int newHeight = await page.EvaluateAsync<int>("document.body.scrollHeight");
+                    if (newHeight == scrollHeight) break; // No more content
 
-                    var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");
+                    scrollHeight = newHeight;
+                    await page.EvaluateAsync($"window.scrollTo(0, {scrollHeight})");
+                    await page.WaitForTimeoutAsync(1000);
+                    attempt++;
+                }
 
-                    if (products == null)
+                int loadMoreClicks = 0;
+                int maxClicks = 10;
+
+                while (loadMoreClicks < maxClicks)
+                {
+                    var loadMoreButton = await page.QuerySelectorAsync(".load-more-btn, .wd-load-more, button:has-text('Load More'), button:has-text('View More'), button:has-text('Show More')");
+
+                    if (loadMoreButton == null)
+                        break;
+
+                    bool isVisible = await loadMoreButton.IsVisibleAsync();
+                    bool isEnabled = await loadMoreButton.IsEnabledAsync();
+
+                    if (!isVisible || !isEnabled)
+                        break;
+
+                    await loadMoreButton.ClickAsync();
+                    loadMoreClicks++;
+                    Console.WriteLine($"[ZahComputers] Clicked 'Load More' (attempt {loadMoreClicks})");
+
+                    await page.WaitForTimeoutAsync(3000);
+
+                    await page.EvaluateAsync("window.scrollTo(0, document.body.scrollHeight)");
+                    await page.WaitForTimeoutAsync(1000);
+                }
+
+                string html = await page.ContentAsync();
+
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
+
+                var products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");
+
+                if (products == null)
+                {
+                    Console.WriteLine("[ZahComputers] No products found in DOM parsing.");
+                    return;
+                }
+
+                Console.WriteLine($"[ZahComputers] Total products found: {products.Count}. Processing...");
+
+                Uri link = new Uri("https://www.zahcomputers.pk");
+                var curr_store = await createOrFind_Store("ZahComputers", link);
+
+                foreach (var pro in products)
+                {
+                    var name = pro.SelectSingleNode(".//h3[contains(@class,'wd-entities-title')]/a");
+                    string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
+
+                    Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
+                    if (match.Success)
                     {
-                        Console.WriteLine("[ZahComputers] No products found in DOM parsing.");
-                        return;
-                    }
+                        var salePriceNode = pro.SelectSingleNode(".//ins//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
+                        var originalPriceNode = pro.SelectSingleNode(".//del//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
+                        var price_node = salePriceNode ?? pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
+                        var url_node = pro.SelectSingleNode(".//a");
+                        string base_uri = "https://www.zahcomputers.pk";
+                        string href = url_node?.GetAttributeValue("href", "") ?? "";
+                        Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
 
-                    Console.WriteLine($"[ZahComputers] Total products found: {products.Count}. Processing database inserts...");
+                        var baseProduct = match.Value.ToUpper();
+                        var product_Name = await createorFind_ScrapProduct(baseProduct, category_name);
+                        var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
 
-                    Uri link = new Uri("https://www.zahcomputers.pk");
-                    var curr_store = await createOrFind_Store("ZahComputers", link);
-
-                    foreach (var pro in products)
-                    {
-                        var name = pro.SelectSingleNode(".//h3[contains(@class,'wd-entities-title')]/a");
-                        string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
-
-                        Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
-                        if (match.Success)
+                        if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
                         {
-                            var price_node = pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
-                            var url_node = pro.SelectSingleNode(".//a");
-                            string base_uri = "https://www.zahcomputers.pk";
-                            string href = url_node?.GetAttributeValue("href", "") ?? "";
-                            Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
+                            string cleanPriceText = Regex.Replace(price_node.InnerText, @"[^\d.]", "");
 
-                            var baseProduct = match.Value.ToUpper();
-                            var product_Name = await createorFind_ScrapProduct(baseProduct, category_name);
-                            var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
-
-                            if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
+                            if (decimal.TryParse(cleanPriceText, out decimal cpu_Price) && cpu_Price > 0)
                             {
-                                string cleanPriceText = Regex.Replace(price_node.InnerText, @"[^\d.]", "");
-
-                                if (decimal.TryParse(cleanPriceText, out decimal cpu_Price) && cpu_Price > 0)
+                                bool isOnSale = salePriceNode != null;
+                                decimal? originalPrice = null;
+                                if (originalPriceNode != null)
                                 {
-                                    Console.WriteLine($"[ZahComputers] Item: {pro_name} | Price: {cpu_Price} PKR");
-                                    await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);
+                                    string cleanOriginal = Regex.Replace(originalPriceNode.InnerText, @"[^\d.]", "");
+                                    if (decimal.TryParse(cleanOriginal, out decimal orig) && orig > 0)
+                                        originalPrice = orig;
                                 }
+                                if (isOnSale)
+                                    Console.WriteLine($"[ZahComputers] SALE: {pro_name} | Was: Rs. {originalPrice} | Now: Rs. {cpu_Price}");
                                 else
-                                {
-                                    Console.WriteLine($"[ZahComputers] Out of Stock / Unparseable Price: {pro_name}");
-                                }
+                                    Console.WriteLine($"[ZahComputers] Item: {pro_name} | Price: {cpu_Price} PKR");
+
+                                await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[ZahComputers] Out of Stock / Unparseable Price: {pro_name}");
                             }
                         }
                     }
                 }
-                else
-                {
-                    Console.WriteLine($"[ZahComputers Error] FlareSolverr failed: {result?.Message ?? "No message provided."}");
-                }
+
+                Console.WriteLine($"[ZahComputers] Completed. Total products processed: {products.Count}");
             }
             catch (Exception ex)
-            { 
-                Console.WriteLine($"[ZahComputers Error] HTTP Request failed: {ex.Message}");
+            {
+                Console.WriteLine($"[ZahComputers Error] {ex.Message}");
+            }
+            finally
+            {
+                await context.CloseAsync();
             }
         }
     }
