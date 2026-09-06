@@ -373,7 +373,20 @@ namespace PC_Parts_Scrapper.Services
                 Console.WriteLine($"[ZahComputers] Navigating to: {url}");
                 await page.GotoAsync(url, new PageGotoOptions { Timeout = 60000 });
 
-                await page.WaitForSelectorAsync(".product-element-bottom", new PageWaitForSelectorOptions { Timeout = 60000 });
+                //await page.WaitForSelectorAsync(".product-element-bottom", new PageWaitForSelectorOptions { Timeout = 60000 });
+
+                try
+                {
+                    await page.WaitForSelectorAsync(".product-element-bottom", new PageWaitForSelectorOptions { Timeout = 60000 });
+                }
+                catch (TimeoutException)
+                {
+                    string debugHtml = await page.ContentAsync();
+                    await File.WriteAllTextAsync($"debug_{DateTime.UtcNow:yyyyMMdd_HHmmss}.html", debugHtml);
+                    await page.ScreenshotAsync(new PageScreenshotOptions { Path = $"debug_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png", FullPage = true });
+                    Console.WriteLine($"[ZahComputers] Timeout — dumped debug HTML/screenshot. Page title: {await page.TitleAsync()}");
+                    throw;
+                }
 
                 int scrollHeight = 0;
                 int maxScrollAttempts = 20;
