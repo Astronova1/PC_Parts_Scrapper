@@ -51,6 +51,7 @@ namespace PC_Parts_Scrapper.Controllers
                    StoreName = si.Store!.Name,
                    Url = si.Url,
                    ItemTitle = si.Title,
+                   IsOutOfStock = si.IsOutOfStock,
                    LatestPrice = si.PriceHistories
                        .OrderByDescending(ph => ph.CheckedAt)
                        .Select(ph => ph.Price)
@@ -106,6 +107,10 @@ namespace PC_Parts_Scrapper.Controllers
                                    .SelectMany(si => si.PriceHistories)
                                    .OrderByDescending(ph => ph.CheckedAt)
                                    .Select(ph => ph.Price)
+                                   .FirstOrDefault(),
+                    IsOutOfStock = p.ScrapedItems
+                                   .Where(si => si.ScrapedItemId == id)
+                                   .Select(si => si.IsOutOfStock)
                                    .FirstOrDefault()
                 })
                 .FirstOrDefaultAsync();
