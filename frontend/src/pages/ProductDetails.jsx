@@ -227,7 +227,24 @@ export default function ProductDetails() {
 
             <h2>{product?.name || 'Unknown Product'}</h2>
             <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-                Current Price: {product?.latestPrice ? `Rs. ${Number(product.latestPrice).toFixed(2)}` : 'N/A'}
+                Current Price:{' '}
+                <span style={product?.isOutOfStock ? { textDecoration: 'line-through', color: '#9ca3af' } : undefined}>
+                    {product?.latestPrice ? `Rs. ${Number(product.latestPrice).toFixed(2)}` : 'N/A'}
+                </span>
+                {product?.isOutOfStock && (
+                    <span style={{
+                        marginLeft: '10px',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: '#7f1d1d',
+                        color: '#fecaca',
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                    }}>
+                        Out of Stock
+                    </span>
+                )}
             </p>
 
             <div style={{ margin: '20px 0', padding: '16px', border: '1px solid #e5e5e5', borderRadius: '8px' }}>
