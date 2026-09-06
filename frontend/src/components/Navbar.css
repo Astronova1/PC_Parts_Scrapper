@@ -262,7 +262,7 @@
 
 /* BOTTOM BAR */
 .navbar-bottom {
-  background: #fafbfc;
+  background: #1a56db;
   padding: 0 1.5rem;
   border-bottom: 1px solid #e5e5e5;
 }
@@ -292,7 +292,7 @@
   display: flex;
   align-items: center;
   padding: 1rem 1.2rem;
-  color: #2d2d2d;
+  color: #ffffff;
   text-decoration: none;
   font-size: 0.95rem;
   font-weight: 500;
