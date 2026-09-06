@@ -391,7 +391,7 @@ namespace PC_Parts_Scrapper.Services
                             rawHtml = result.Solution.Response;
                             var doc = new HtmlDocument();
                             doc.LoadHtml(rawHtml);
-                            products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-element-bottom')]");
+                            products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-list-content') or contains(@class, 'product-element-bottom')]");
                         }
                         else
                         {
@@ -405,7 +405,6 @@ namespace PC_Parts_Scrapper.Services
                         break;
                     }
 
-                    // --- Distinguish "real end of pagination" from "got challenged/blocked" ---
                     if (products == null || products.Count == 0)
                     {
                         bool looksLikeChallenge = rawHtml != null &&
@@ -417,7 +416,7 @@ namespace PC_Parts_Scrapper.Services
                         {
                             Console.WriteLine($"[ZahComputers] Page {pageNum} returned a Cloudflare challenge, not content. Retrying once...");
                             await Task.Delay(5000);
-                            continue; // retry same page instead of aborting pagination
+                            continue;
                         }
 
                         Console.WriteLine($"[ZahComputers] No products on page {pageNum} (confirmed real end). Stopping.");
