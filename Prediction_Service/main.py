@@ -12,15 +12,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PC Parts Price Prediction", version="1.0.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://your-production-frontend.com",
-    ],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "http://localhost:5173",
+#         "https://your-production-frontend.com",
+#     ],
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 MIN_DATA_POINTS = 5
 
@@ -53,8 +53,12 @@ def predict(request: PredictionRequest):
         df = pd.DataFrame([
             {"ds": p.ds, "y": float(p.y)} for p in request.history
         ])
-        df['ds'] = pd.to_datetime(df['ds']).dt.tz_localize(None)
-        df = df.sort_values("ds").drop_duplicates(subset="ds", keep="last").reset_index(drop=True)
+        df['ds'] = pd.to_datetime(df['ds']).dt.tz_localize(None).dt.normalize()
+        df = (
+            df.sort_values("ds")
+            .groupby("ds", as_index=False)
+            .agg(y=("y", "last"))
+        )
 
         if len(df) < MIN_DATA_POINTS:
             raise HTTPException(
@@ -63,7 +67,6 @@ def predict(request: PredictionRequest):
             )
 
         forecast_df, model_info = train_and_forecast(df, request.forecast_days)
-        # Convert to dictionaries to avoid Pandas/Pydantic type crashes
         forecast_records = forecast_df.to_dict(orient="records")
 
         forecast_points = []
