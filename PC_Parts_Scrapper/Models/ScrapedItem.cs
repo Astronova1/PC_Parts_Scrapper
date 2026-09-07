@@ -12,5 +12,6 @@
         public ICollection<PriceHistory> PriceHistories { get; set; } = new List<PriceHistory>();
         public bool IsOutOfStock { get; set; } = false;
         public string? Brand { get; set; }
+        public string? temp { get; set; }
     }
 }

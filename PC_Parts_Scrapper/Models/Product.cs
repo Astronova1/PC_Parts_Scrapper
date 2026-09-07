@@ -9,5 +9,6 @@
         public Category? Category { get; set; }
         public ICollection<PriceAlert> PriceAlerts { get; set; } = new List<PriceAlert>();
         public string? GraphicsType { get; set; }
+        public string? tempe { get; set; }
     }
 }
