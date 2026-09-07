@@ -48,9 +48,22 @@
                                                     </a>
                                                 }
                                             </div>
-                                            <span class="badge bg-success fs-6">
-                                                Rs. @store.LatestPrice.ToString("N0")
-                                            </span>
+                                            @if (store.IsOutOfStock)
+                                            {
+                                                <span class="text-end">
+                                                    <span class="badge bg-danger fs-6">Out of Stock</span>
+                                                    <br />
+                                                    <span class="text-muted text-decoration-line-through small">
+                                                        Rs. @store.LatestPrice.ToString("N0")
+                                                    </span>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success fs-6">
+                                                    Rs. @store.LatestPrice.ToString("N0")
+                                                </span>
+                                            }
                                         </li>
                                     }
                                 </ul>

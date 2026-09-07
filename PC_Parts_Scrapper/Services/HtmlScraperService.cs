@@ -136,6 +136,60 @@ namespace PC_Parts_Scrapper.Services
             return p1;
         }
 
+        private static bool IsZahListingOutOfStock(HtmlNode productNode)
+        {
+            if (ContainsOutOfStockLabel(productNode))
+                return true;
+
+            var card = productNode;
+            for (int i = 0; i < 4 && card.ParentNode != null; i++)
+            {
+                card = card.ParentNode;
+                var cls = card.GetAttributeValue("class", "");
+                if (cls.Contains("product-wrapper") || cls.Contains("product-grid-item"))
+                {
+                    var titles = card.SelectNodes(".//h3[contains(@class, 'wd-entities-title')]");
+                    if (titles == null || titles.Count <= 1)
+                        return ContainsOutOfStockLabel(card);
+                    break;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsOutOfStockLabel(HtmlNode node)
+        {
+            var oosLabel = node.SelectSingleNode(
+                ".//span[contains(concat(' ', normalize-space(@class), ' '), ' out-of-stock ')]");
+            if (oosLabel != null)
+                return true;
+
+            var labels = node.SelectNodes(
+                ".//*[contains(concat(' ', normalize-space(@class), ' '), ' product-label ')]");
+            if (labels != null)
+            {
+                foreach (var label in labels)
+                {
+                    var text = Regex.Replace(HtmlEntity.DeEntitize(label.InnerText ?? ""), @"\s+", " ").Trim();
+                    if (text.Contains("sold out", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("out of stock", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private async Task SetStockStatusAsync(ScrapedItem item, bool isOutOfStock)
+        {
+            if (item.IsOutOfStock == isOutOfStock)
+                return;
+
+            item.IsOutOfStock = isOutOfStock;
+            await _pc_parts_Context.SaveChangesAsync();
+        }
+
         private async Task<T> SafeEvaluateAsync<T>(IPage page, string script, T fallbackValue)
         {
             try
@@ -314,12 +368,14 @@ namespace PC_Parts_Scrapper.Services
 
                         var priceNode = pro.SelectSingleNode(".//div[contains(@class, 'product-price')]");
 
+                        bool hasValidPrice = false;
                         if (priceNode != null && !string.IsNullOrWhiteSpace(priceNode.InnerText))
                         {
                             var priceClean = priceNode.InnerText.Replace("Rs.", "").Replace(",", "").Trim();
 
                             if (decimal.TryParse(priceClean, out decimal cpu_Price) && cpu_Price > 0)
                             {
+                                hasValidPrice = true;
                                 Console.WriteLine($"[CZone] Saved: {cpu_Name} -> {cpu_Price} PKR");
                                 await createOrFind_History(scrapedItem.ScrapedItemId, cpu_Price);
                             }
@@ -328,6 +384,14 @@ namespace PC_Parts_Scrapper.Services
                                 Console.WriteLine($"[CZone] Out of Stock / Unparseable Price: {cpu_Name}");
                             }
                         }
+
+                        // "Sold out" / "Out of stock" markers can appear even when a price is shown.
+                        var proText = Regex.Replace(pro.InnerText ?? "", @"\s+", " ");
+                        bool markedOutOfStock =
+                            proText.Contains("out of stock", StringComparison.OrdinalIgnoreCase) ||
+                            proText.Contains("sold out", StringComparison.OrdinalIgnoreCase);
+
+                        await SetStockStatusAsync(scrapedItem, markedOutOfStock || !hasValidPrice);
                     }
                 }
             }
@@ -444,6 +508,11 @@ namespace PC_Parts_Scrapper.Services
                             var baseProduct = match.Value.ToUpper();
                             var product_Name = await createorFind_ScrapProduct(baseProduct, category_name);
                             var scrapedItem = await createOrFind_ScrapItem(curr_store.StoreId, product_Name.ProductId, rel_url, pro_name);
+
+                            bool isOutOfStock = IsZahListingOutOfStock(pro);
+                            await SetStockStatusAsync(scrapedItem, isOutOfStock);
+                            if (isOutOfStock)
+                                Console.WriteLine($"[ZahComputers] Out of stock (price still listed): {pro_name}");
 
                             if (price_node != null && !string.IsNullOrWhiteSpace(price_node.InnerText))
                             {

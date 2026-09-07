@@ -213,6 +213,11 @@ export default function ProductList() {
                                         onClick={() => toggleExpand(product.productId)}
                                     >
                                         <h2 className="product-title">{product.name}</h2>
+                                        {product.graphicsType && (
+                                            <span className={`graphics-type-badge graphics-type-${product.graphicsType.toLowerCase()}`}>
+                                                {product.graphicsType}
+                                            </span>
+                                        )}
                                         {lowestPrice !== null && (
                                             <span className="lowest-price-badge">
                                                 From: Rs. {lowestPrice.toLocaleString()}
@@ -241,13 +246,19 @@ export default function ProductList() {
                                                         {listing.storeName}
                                                     </div>
                                                     <div className="listing-cell item-title" data-label="Item Listing">
+                                                        {listing.brand && (
+                                                            <span className="brand-tag">{listing.brand}</span>
+                                                        )}
                                                         {listing.itemTitle}
                                                     </div>
                                                     <div className="listing-cell price-text" data-label="Price (PKR)">
-                                                        <span className="price-amount">
+                                                        {listing.isOutOfStock && (
+                                                            <span className="out-of-stock-badge">Out of Stock</span>
+                                                        )}
+                                                        <span className={`price-amount ${listing.isOutOfStock ? 'price-out-of-stock' : ''}`}>
                                                             Rs. {listing.latestPrice != null ? listing.latestPrice.toLocaleString() : "N/A"}
                                                         </span>
-                                                        {lowestPrice !== null && Number(listing.latestPrice) === lowestPrice && (
+                                                        {!listing.isOutOfStock && lowestPrice !== null && Number(listing.latestPrice) === lowestPrice && (
                                                             <span className="best-price-badge">Best Price</span>
                                                         )}
                                                     </div>
@@ -324,8 +335,9 @@ export default function ProductList() {
         </button>
     </div>
 )}
-                </>
-            )}
+                    </>
+                )}
+            </div>
         </div>
     );
 }
