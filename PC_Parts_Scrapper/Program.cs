@@ -83,8 +83,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PcPartsContext>();
     var scraper = scope.ServiceProvider.GetRequiredService<HtmlScraperService>();
-    await scraper.CheckPriceAlertsAsync();
     db.Database.Migrate();
+    await scraper.CheckPriceAlertsAsync();
 
     //await scraper.AssignCategoriesToExistingProducts();
     await scraper.BackfillBrandsAndGraphicsTypes();
