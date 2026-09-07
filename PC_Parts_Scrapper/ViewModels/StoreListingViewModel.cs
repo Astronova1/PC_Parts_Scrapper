@@ -8,5 +8,6 @@
         public string ItemTitle { get; set; } = string.Empty;
         public int ScrapedItemId { get; set; }
         public DateTimeOffset? CheckedAt { get; set; }
+        public string? Brand { get; set; }
     }
 }
