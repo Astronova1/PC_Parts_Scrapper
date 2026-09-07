@@ -15,6 +15,16 @@ export default function ProductList() {
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
 
+    const selectedBrands = searchParams.getAll('brand');
+    const selectedGraphicsTypes = searchParams.getAll('graphicsType');
+    const minPriceParam = searchParams.get('minPrice');
+    const maxPriceParam = searchParams.get('maxPrice');
+    const inStockOnly = searchParams.get('inStock') === 'true';
+    const searchParamsKey = searchParams.toString();
+
+    const [filterOptions, setFilterOptions] = useState({ brands: [], graphicsTypes: [], minPrice: 0, maxPrice: 0 });
+    const [priceDraft, setPriceDraft] = useState([0, 0]);
+
     const getScrollKey = () => `productListScrollY_${categoryId || 'all'}_${searchQuery || 'all'}_${currentPage}`;
 
     const saveScrollPosition = () => {
@@ -114,6 +124,11 @@ export default function ProductList() {
                 const params = new URLSearchParams();
                 if (categoryId) params.append('category', categoryId);
                 if (searchQuery) params.append('search', searchQuery);
+                selectedBrands.forEach(brand => params.append('brands', brand));
+                selectedGraphicsTypes.forEach(type => params.append('graphicsTypes', type));
+                if (minPriceParam) params.append('minPrice', minPriceParam);
+                if (maxPriceParam) params.append('maxPrice', maxPriceParam);
+                if (inStockOnly) params.append('inStockOnly', 'true');
                 params.append('page', currentPage);
                 params.append('pageSize', '20');
 
@@ -142,7 +157,35 @@ export default function ProductList() {
             }
         };
         fetchData();
-    }, [categoryId, searchQuery, currentPage]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categoryId, searchQuery, currentPage, searchParamsKey]);
+
+    useEffect(() => {
+        const fetchFilterOptions = async () => {
+            try {
+                const params = new URLSearchParams();
+                if (categoryId) params.append('category', categoryId);
+                const response = await fetch(`/api/product/filters?${params.toString()}`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const data = await response.json();
+                const nextOptions = {
+                    brands: Array.isArray(data.brands) ? data.brands : [],
+                    graphicsTypes: Array.isArray(data.graphicsTypes) ? data.graphicsTypes : [],
+                    minPrice: Number(data.minPrice) || 0,
+                    maxPrice: Number(data.maxPrice) || 0
+                };
+                setFilterOptions(nextOptions);
+                setPriceDraft([
+                    minPriceParam ? Number(minPriceParam) : nextOptions.minPrice,
+                    maxPriceParam ? Number(maxPriceParam) : nextOptions.maxPrice
+                ]);
+            } catch (err) {
+                console.error('Error fetching filter options: ', err);
+            }
+        };
+        fetchFilterOptions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categoryId]);
 
     const toggleExpand = (productId) => {
         setExpandedProducts(prev =>
@@ -162,6 +205,73 @@ export default function ProductList() {
 
     const allExpanded = products.length > 0 && expandedProducts.length === products.length;
 
+    const toggleArrayParam = (key, value) => {
+        setSearchParams(prev => {
+            const params = new URLSearchParams(prev);
+            const existing = params.getAll(key);
+            params.delete(key);
+            const next = existing.includes(value) ? existing.filter(v => v !== value) : [...existing, value];
+            next.forEach(v => params.append(key, v));
+            params.set('page', '1');
+            return params;
+        });
+    };
+
+    const toggleInStockOnly = () => {
+        setSearchParams(prev => {
+            const params = new URLSearchParams(prev);
+            if (params.get('inStock') === 'true') {
+                params.delete('inStock');
+            } else {
+                params.set('inStock', 'true');
+            }
+            params.set('page', '1');
+            return params;
+        });
+    };
+
+    const commitPriceRange = (range) => {
+        setSearchParams(prev => {
+            const params = new URLSearchParams(prev);
+            params.set('minPrice', String(range[0]));
+            params.set('maxPrice', String(range[1]));
+            params.set('page', '1');
+            return params;
+        });
+    };
+
+    const clearFilters = () => {
+        setSearchParams(prev => {
+            const params = new URLSearchParams(prev);
+            params.delete('brand');
+            params.delete('graphicsType');
+            params.delete('minPrice');
+            params.delete('maxPrice');
+            params.delete('inStock');
+            params.set('page', '1');
+            return params;
+        });
+        setPriceDraft([filterOptions.minPrice, filterOptions.maxPrice]);
+    };
+
+    const priceBounds = [filterOptions.minPrice, filterOptions.maxPrice];
+    const priceSpan = Math.max(priceBounds[1] - priceBounds[0], 1);
+
+    const handleMinPriceDrag = (e) => {
+        const value = Math.min(Number(e.target.value), priceDraft[1] - 1);
+        setPriceDraft([value, priceDraft[1]]);
+    };
+
+    const handleMaxPriceDrag = (e) => {
+        const value = Math.max(Number(e.target.value), priceDraft[0] + 1);
+        setPriceDraft([priceDraft[0], value]);
+    };
+
+    const handlePriceCommit = () => commitPriceRange(priceDraft);
+
+    const hasActiveFilters = selectedBrands.length > 0 || selectedGraphicsTypes.length > 0 ||
+        inStockOnly || !!minPriceParam || !!maxPriceParam;
+
     const goToProductDetails = (productId, scrapedItemId, storeName) => {
         saveScrollPosition();
         navigate(
@@ -177,16 +287,120 @@ export default function ProductList() {
         );
     };
 
-    if (loading) return <div className="loading">Loading hardware....</div>;
-    if (error) return <div className="error"> Error: {error} </div>;
-
     return (
-        <div className="product-container">
-            {products.length === 0 ? (
-                <p className="no-products">No Products Found</p>
-            ) : (
-                <>
-                    <div className="expand-controls">
+        <div className="product-page-layout">
+            <aside className="filters-sidebar">
+                <div className="filters-sidebar-header">
+                    <h2>Filters</h2>
+                    {hasActiveFilters && (
+                        <button className="clear-filters-btn" onClick={clearFilters}>Clear all</button>
+                    )}
+                </div>
+
+                <div className="filter-section">
+                    <h3>Brand</h3>
+                    {filterOptions.brands.length === 0 ? (
+                        <p className="filter-empty">No brands available</p>
+                    ) : (
+                        <ul className="filter-checkbox-list">
+                            {filterOptions.brands.map(brand => (
+                                <li key={brand}>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedBrands.includes(brand)}
+                                            onChange={() => toggleArrayParam('brand', brand)}
+                                        />
+                                        {brand}
+                                    </label>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                {filterOptions.graphicsTypes.length > 0 && (
+                    <div className="filter-section">
+                        <h3>Graphics Type</h3>
+                        <ul className="filter-checkbox-list">
+                            {filterOptions.graphicsTypes.map(type => (
+                                <li key={type}>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedGraphicsTypes.includes(type)}
+                                            onChange={() => toggleArrayParam('graphicsType', type)}
+                                        />
+                                        {type}
+                                    </label>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                <div className="filter-section">
+                    <h3>Availability</h3>
+                    <label className="filter-toggle">
+                        <input type="checkbox" checked={inStockOnly} onChange={toggleInStockOnly} />
+                        In Stock Only
+                    </label>
+                </div>
+
+                <div className="filter-section">
+                    <h3>Price Range (PKR)</h3>
+                    {priceBounds[0] === priceBounds[1] ? (
+                        <p className="filter-empty">No price data yet</p>
+                    ) : (
+                        <div className="price-slider">
+                            <div className="price-slider-track">
+                                <div
+                                    className="price-slider-range"
+                                    style={{
+                                        left: `${((priceDraft[0] - priceBounds[0]) / priceSpan) * 100}%`,
+                                        right: `${100 - ((priceDraft[1] - priceBounds[0]) / priceSpan) * 100}%`
+                                    }}
+                                />
+                            </div>
+                            <input
+                                type="range"
+                                className="price-thumb price-thumb-min"
+                                min={priceBounds[0]}
+                                max={priceBounds[1]}
+                                value={priceDraft[0]}
+                                onChange={handleMinPriceDrag}
+                                onMouseUp={handlePriceCommit}
+                                onTouchEnd={handlePriceCommit}
+                            />
+                            <input
+                                type="range"
+                                className="price-thumb price-thumb-max"
+                                min={priceBounds[0]}
+                                max={priceBounds[1]}
+                                value={priceDraft[1]}
+                                onChange={handleMaxPriceDrag}
+                                onMouseUp={handlePriceCommit}
+                                onTouchEnd={handlePriceCommit}
+                            />
+                            <div className="price-values">
+                                <span>Rs. {priceDraft[0].toLocaleString()}</span>
+                                <span>Rs. {priceDraft[1].toLocaleString()}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </aside>
+
+            <div className="product-container">
+                {loading ? (
+                    <div className="loading">Loading hardware....</div>
+                ) : error ? (
+                    <div className="error"> Error: {error} </div>
+                ) : products.length === 0 ? (
+                    <p className="no-products">No Products Found</p>
+                ) : (
+                    <>
+                        <div className="expand-controls">
                         <button onClick={expandAll} disabled={allExpanded}>
                             Expand All
                         </button>
@@ -201,6 +415,7 @@ export default function ProductList() {
                     <div className="product-list">
                         {products.map(product => {
                             const prices = product.listings
+                                .filter(l => !l.isOutOfStock)
                                 .map(l => Number(l.latestPrice))
                                 .filter(p => !isNaN(p) && p > 0);
                             const lowestPrice = prices.length ? Math.min(...prices) : null;
