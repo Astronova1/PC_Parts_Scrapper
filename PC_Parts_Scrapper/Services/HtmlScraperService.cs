@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 using PC_Parts_Scrapper.Data;
+using PC_Parts_Scrapper.Helpers;
 using PC_Parts_Scrapper.Models;
 using PC_Parts_Scrapper.Utils;
 using System.Net.Http.Json;
@@ -92,10 +93,21 @@ namespace PC_Parts_Scrapper.Services
                     await _pc_parts_Context.SaveChangesAsync();
                 }
                 Console.WriteLine($"[Database] Product '{search_name}' not found. Creating new entry.");
-                Product p1 = new Product { Name = search_name, CategoryId = category.CategoryId };
+                Product p1 = new Product
+                {
+                    Name = search_name,
+                    CategoryId = category.CategoryId,
+                    GraphicsType = ProductParser.ExtractGraphicsType(search_name, category_name)
+                };
                 _pc_parts_Context.Add(p1);
                 await _pc_parts_Context.SaveChangesAsync();
                 return p1;
+            }
+            else if (product.GraphicsType == null)
+            {
+                product.GraphicsType = ProductParser.ExtractGraphicsType(search_name, category_name);
+                if (product.GraphicsType != null)
+                    await _pc_parts_Context.SaveChangesAsync();
             }
             return product;
         }
@@ -105,6 +117,8 @@ namespace PC_Parts_Scrapper.Services
             var s_item = await _pc_parts_Context.ScrapedItems
                 .FirstOrDefaultAsync(s => s.StoreId == s_id && s.Title == product_Name);
 
+            var brand = ProductParser.ExtractBrand(product_Name);
+
             if (s_item == null)
             {
                 Console.WriteLine($"[Database] Item '{product_Name}' not found. Creating new entrys");
@@ -113,12 +127,20 @@ namespace PC_Parts_Scrapper.Services
                     StoreId = s_id,
                     ProductId = p_id,
                     Url = url,
-                    Title = product_Name
+                    Title = product_Name,
+                    Brand = brand
                 };
                 _pc_parts_Context.Add(s1);
                 await _pc_parts_Context.SaveChangesAsync();
                 return s1;
             }
+
+            if (s_item.Brand == null && brand != null)
+            {
+                s_item.Brand = brand;
+                await _pc_parts_Context.SaveChangesAsync();
+            }
+
             return s_item;
         }
 
@@ -238,6 +260,43 @@ namespace PC_Parts_Scrapper.Services
 
             await _pc_parts_Context.SaveChangesAsync();
             Console.WriteLine("Categories assigned to all products!");
+        }
+
+        public async Task BackfillBrandsAndGraphicsTypes()
+        {
+            var products = await _pc_parts_Context.Products
+                .Include(p => p.Category)
+                .Where(p => p.GraphicsType == null)
+                .ToListAsync();
+
+            int productsUpdated = 0;
+            foreach (var product in products)
+            {
+                var graphicsType = ProductParser.ExtractGraphicsType(product.Name, product.Category?.CategoryName);
+                if (graphicsType != null)
+                {
+                    product.GraphicsType = graphicsType;
+                    productsUpdated++;
+                }
+            }
+
+            var scrapedItems = await _pc_parts_Context.ScrapedItems
+                .Where(s => s.Brand == null)
+                .ToListAsync();
+
+            int itemsUpdated = 0;
+            foreach (var item in scrapedItems)
+            {
+                var brand = ProductParser.ExtractBrand(item.Title);
+                if (brand != null)
+                {
+                    item.Brand = brand;
+                    itemsUpdated++;
+                }
+            }
+
+            await _pc_parts_Context.SaveChangesAsync();
+            Console.WriteLine($"Backfill complete: {productsUpdated}/{products.Count} products got a GraphicsType, {itemsUpdated}/{scrapedItems.Count} scraped items got a Brand.");
         }
 
         #endregion
