@@ -10,6 +10,7 @@
         public int ProductId { get; set; }
         public Product? Product { get; set; }
         public ICollection<PriceHistory> PriceHistories { get; set; } = new List<PriceHistory>();
-
+        public bool IsOutOfStock { get; set; } = false;
+        public string? Brand { get; set; }
     }
 }

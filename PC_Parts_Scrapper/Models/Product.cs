@@ -8,5 +8,6 @@
         public int? CategoryId { get; set; }
         public Category? Category { get; set; }
         public ICollection<PriceAlert> PriceAlerts { get; set; } = new List<PriceAlert>();
+        public string? GraphicsType { get; set; }
     }
 }
