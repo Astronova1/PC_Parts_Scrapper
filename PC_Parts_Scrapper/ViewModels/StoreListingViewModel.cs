@@ -9,5 +9,6 @@
         public int ScrapedItemId { get; set; }
         public DateTimeOffset? CheckedAt { get; set; }
         public bool IsOutOfStock { get; set; }
+        public string? Brand { get; set; }
     }
 }

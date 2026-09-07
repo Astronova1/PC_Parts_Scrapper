@@ -17,7 +17,16 @@ namespace PC_Parts_Scrapper.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> getProducts([FromQuery] int? category, [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> getProducts(
+            [FromQuery] int? category,
+            [FromQuery] string? search,
+            [FromQuery] string[]? brands,
+            [FromQuery] string[]? graphicsTypes,
+            [FromQuery] decimal? minPrice,
+            [FromQuery] decimal? maxPrice,
+            [FromQuery] bool? inStockOnly,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 1;
@@ -35,6 +44,28 @@ namespace PC_Parts_Scrapper.Controllers
                 query = query.Where(p => EF.Functions.ILike(p.Name, $"%{normalizedSearch}%"));
             }
 
+            if (graphicsTypes != null && graphicsTypes.Length > 0)
+            {
+                query = query.Where(p => p.GraphicsType != null && graphicsTypes.Contains(p.GraphicsType));
+            }
+
+            if (brands != null && brands.Length > 0)
+            {
+                query = query.Where(p => p.ScrapedItems.Any(si => si.Brand != null && brands.Contains(si.Brand)));
+            }
+
+            if (inStockOnly == true)
+            {
+                query = query.Where(p => p.ScrapedItems.Any(si => !si.IsOutOfStock));
+            }
+
+            if (minPrice.HasValue || maxPrice.HasValue)
+            {
+                query = query.Where(p => p.ScrapedItems.Any(si =>
+                    si.PriceHistories.OrderByDescending(ph => ph.CheckedAt).Select(ph => (decimal?)ph.Price).FirstOrDefault() >= (minPrice ?? 0)
+                    && si.PriceHistories.OrderByDescending(ph => ph.CheckedAt).Select(ph => (decimal?)ph.Price).FirstOrDefault() <= (maxPrice ?? decimal.MaxValue)));
+            }
+
             int totalCount = await query.CountAsync();
             int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
@@ -45,6 +76,7 @@ namespace PC_Parts_Scrapper.Controllers
            {
                ProductId = p.ProductId,
                Name = p.Name,
+               GraphicsType = p.GraphicsType,
                Listings = p.ScrapedItems.Select(si => new StoreListingViewModel
                {
                    ScrapedItemId = si.ScrapedItemId,
@@ -52,6 +84,7 @@ namespace PC_Parts_Scrapper.Controllers
                    Url = si.Url,
                    ItemTitle = si.Title,
                    IsOutOfStock = si.IsOutOfStock,
+                   Brand = si.Brand,
                    LatestPrice = si.PriceHistories
                        .OrderByDescending(ph => ph.CheckedAt)
                        .Select(ph => ph.Price)
@@ -71,6 +104,50 @@ namespace PC_Parts_Scrapper.Controllers
                 PageSize = pageSize,
                 TotalPages = totalPages,
                 Items = result
+            });
+        }
+
+        [HttpGet("filters")]
+        public async Task<IActionResult> GetFilterOptions([FromQuery] int? category)
+        {
+            var itemsQuery = _context.ScrapedItems.AsQueryable();
+            if (category.HasValue)
+            {
+                itemsQuery = itemsQuery.Where(si => si.Product!.CategoryId == category);
+            }
+
+            var brands = await itemsQuery
+                .Where(si => si.Brand != null)
+                .Select(si => si.Brand!)
+                .Distinct()
+                .OrderBy(b => b)
+                .ToListAsync();
+
+            var graphicsTypesQuery = _context.Products.Where(p => p.GraphicsType != null);
+            if (category.HasValue)
+            {
+                graphicsTypesQuery = graphicsTypesQuery.Where(p => p.CategoryId == category);
+            }
+            var graphicsTypes = await graphicsTypesQuery
+                .Select(p => p.GraphicsType!)
+                .Distinct()
+                .OrderBy(g => g)
+                .ToListAsync();
+
+            var latestPrices = await itemsQuery
+                .Select(si => si.PriceHistories
+                    .OrderByDescending(ph => ph.CheckedAt)
+                    .Select(ph => ph.Price)
+                    .FirstOrDefault())
+                .Where(p => p > 0)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                Brands = brands,
+                GraphicsTypes = graphicsTypes,
+                MinPrice = latestPrices.Count > 0 ? latestPrices.Min() : 0,
+                MaxPrice = latestPrices.Count > 0 ? latestPrices.Max() : 0
             });
         }
 
