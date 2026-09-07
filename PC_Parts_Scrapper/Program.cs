@@ -87,8 +87,8 @@ using (var scope = app.Services.CreateScope())
     await scraper.CheckPriceAlertsAsync();
 
     //await scraper.AssignCategoriesToExistingProducts();
-    await scraper.BackfillBrandsAndGraphicsTypes();
-    return;
+    //await scraper.BackfillBrandsAndGraphicsTypes();
+    //return;
 }
 
 
