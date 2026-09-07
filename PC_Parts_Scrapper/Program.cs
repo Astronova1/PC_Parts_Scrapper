@@ -87,8 +87,8 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 
     //await scraper.AssignCategoriesToExistingProducts();
-    //await scraper.BackfillBrandsAndGraphicsTypes();
-    //return;
+    await scraper.BackfillBrandsAndGraphicsTypes();
+    return;
 }
 
 
