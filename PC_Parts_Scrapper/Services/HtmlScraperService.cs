@@ -334,16 +334,16 @@ namespace PC_Parts_Scrapper.Services
                 UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
                 ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
                 FirefoxUserPrefs = new Dictionary<string, object>
-                {
-                    { "security.sandbox.content.level", 0 }
-                }
+        {
+            { "security.sandbox.content.level", 0 }
+        }
             });
 
             var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
 
             await page.AddInitScriptAsync(@"
-                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-            ");
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    ");
 
             try
             {
@@ -357,7 +357,6 @@ namespace PC_Parts_Scrapper.Services
                     Console.WriteLine("Cloudflare challenge detected!");
                     Console.WriteLine("Please solve the Cloudflare box in the browser window.");
                     Console.WriteLine("Waiting up to 60 seconds...");
-
                     await page.WaitForSelectorAsync("a.product-title", new PageWaitForSelectorOptions { Timeout = 60000 });
                     Console.WriteLine("Cloudflare bypassed! Clearance cookie saved to profile.");
                 }
@@ -366,28 +365,52 @@ namespace PC_Parts_Scrapper.Services
                     await page.WaitForSelectorAsync("a.product-title", new PageWaitForSelectorOptions { Timeout = 30000 });
                 }
 
-                int currentHeight = await SafeEvaluateAsync<int>(page, "document.body.scrollHeight", 0);
-                int currentPosition = 0;
-                int scrollStep = 500;
+                int maxScrollAttempts = 30;
+                int stableCount = 0;
+                int previousCount = 0;
+                DateTime startTime = DateTime.UtcNow;
+                int maxTotalSeconds = 120;
 
-                while (currentPosition < currentHeight && currentHeight > 0)
+                while (maxScrollAttempts > 0 && (DateTime.UtcNow - startTime).TotalSeconds < maxTotalSeconds)
                 {
-                    currentPosition += scrollStep;
+                    int currentCount = await SafeEvaluateAsync<int>(page, @"document.querySelectorAll('div.content-wrapper').length", 0);
+                    Console.WriteLine($"[CZone] Product count so far: {currentCount}");
 
-                    await SafeEvaluateAsync<object>(page, $"window.scrollTo(0, {currentPosition});", null);
+                    if (currentCount == previousCount)
+                    {
+                        stableCount++;
+                        if (stableCount >= 2)
+                        {
+                            Console.WriteLine("[CZone] No new products after two consecutive scrolls. Stopping.");
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        stableCount = 0;
+                    }
+                    previousCount = currentCount;
 
-                    await page.Mouse.WheelAsync(0, 500);
+                    int scrollStep = Random.Shared.Next(400, 700);
+                    await SafeEvaluateAsync<object>(page, $"window.scrollBy(0, {scrollStep});", null);
 
+                    try
+                    {
+                        await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions { Timeout = 5000 });
+                    }
+                    catch
+                    {
+                    }
+
+                    // Human-like random mouse move and pause
                     await page.Mouse.MoveAsync(Random.Shared.Next(200, 500), Random.Shared.Next(200, 500));
-
                     await page.WaitForTimeoutAsync(Random.Shared.Next(1000, 1800));
 
-                    int newHeight = await SafeEvaluateAsync<int>(page, "document.body.scrollHeight", currentHeight);
-                    if (newHeight > 0)
-                    {
-                        currentHeight = newHeight;
-                    }
+                    maxScrollAttempts--;
                 }
+
+                int finalCount = await SafeEvaluateAsync<int>(page, @"document.querySelectorAll('div.content-wrapper').length", 0);
+                Console.WriteLine($"[CZone] Final product count after scrolling: {finalCount}");
 
                 string html_con = await page.ContentAsync();
 
