@@ -304,7 +304,7 @@ namespace PC_Parts_Scrapper.Services
         public async Task ScrapStores()
         {
             var cpu_link = "https://www.czone.com.pk/processors-pakistan-ppt.85.aspx";  //CZone website link
-            string pattern = @"(?i)(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*(Processor)?\s*([iI]\d|\d)?\s*(Threadripper)?\s*(PRO)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
+            string pattern = @"(?i)(AMD|Intel)\s+(Core\s+Ultra|Core|Ryzen)\s*(\d)?\s*(Processor|Desktop\s+Processor)?\s*([iI]\d|\d)?\s*(Threadripper)?\s*(PRO)?\s*[-–]?\s*\d{3,5}([a-zA-Z0-9]{1,4})?";
 
             var gpu_link = "https://www.czone.com.pk/graphic-cards-pakistan-ppt.154.aspx";  //CZone gpu link
             string pattern_gpu = @"(?i)(RTX|GTX|RX|GT)\s*\d{1,4}\s*(Ti|XT|XTX)?";
