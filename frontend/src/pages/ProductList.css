@@ -101,6 +101,23 @@
   cursor: pointer;
 }
 
+.sort-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1a1a2e;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #4d6bfe;
+}
+
 /* ─── Price Range Slider ─── */
 .price-slider {
   position: relative;
