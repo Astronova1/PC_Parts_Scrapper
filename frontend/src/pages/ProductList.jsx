@@ -326,17 +326,6 @@ export default function ProductList() {
                 </div>
 
                 <div className="filter-section">
-                    <h3>Sort By</h3>
-                    <select className="sort-select" value={sortBy} onChange={handleSortChange}>
-                        {SORT_OPTIONS.map(opt => (
-                            <option key={opt.value || 'default'} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="filter-section">
                     <h3>Brand</h3>
                     {filterOptions.brands.length === 0 ? (
                         <p className="filter-empty">No brands available</p>
@@ -471,6 +460,16 @@ export default function ProductList() {
                         <span className="expand-count">
                             {expandedProducts.length} / {products.length} expanded
                         </span>
+                        <label className="sort-control">
+                            <span>Sort By</span>
+                            <select className="sort-select" value={sortBy} onChange={handleSortChange}>
+                                {SORT_OPTIONS.map(opt => (
+                                    <option key={opt.value || 'default'} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
                     </div>
 
                     <div className="product-list">

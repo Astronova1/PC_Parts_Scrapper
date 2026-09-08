@@ -102,7 +102,7 @@
 }
 
 .sort-select {
-  width: 100%;
+  width: 220px;
   padding: 8px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -286,7 +286,16 @@
 .expand-count {
   font-size: 0.9rem;
   color: #a0aec0;
+}
+
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+  font-size: 0.9rem;
+  color: #4a4a5a;
+  white-space: nowrap;
 }
 
 /* ─── Product Header (Clickable) ─── */
@@ -601,6 +610,16 @@
   .expand-count {
     margin-left: 0;
     text-align: center;
+  }
+
+  .sort-control {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .sort-select {
+    flex: 1;
+    width: auto;
   }
 
   .product-header {
