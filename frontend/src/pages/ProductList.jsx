@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link, useLocation, useNavigate } from "react-router-dom";
 import "./ProductList.css";
 
+const SORT_OPTIONS = [
+    { value: '', label: 'Default' },
+    { value: 'price_asc', label: 'Price: Low to High' },
+    { value: 'price_desc', label: 'Price: High to Low' },
+    { value: 'latest', label: 'Latest' },
+    { value: 'popularity', label: 'Popularity' },
+];
+
 export default function ProductList() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -17,12 +25,14 @@ export default function ProductList() {
 
     const selectedBrands = searchParams.getAll('brand');
     const selectedGraphicsTypes = searchParams.getAll('graphicsType');
+    const selectedStores = searchParams.getAll('store');
+    const sortBy = searchParams.get('sort') || '';
     const minPriceParam = searchParams.get('minPrice');
     const maxPriceParam = searchParams.get('maxPrice');
     const inStockOnly = searchParams.get('inStock') === 'true';
     const searchParamsKey = searchParams.toString();
 
-    const [filterOptions, setFilterOptions] = useState({ brands: [], graphicsTypes: [], minPrice: 0, maxPrice: 0 });
+    const [filterOptions, setFilterOptions] = useState({ brands: [], graphicsTypes: [], stores: [], minPrice: 0, maxPrice: 0 });
     const [priceDraft, setPriceDraft] = useState([0, 0]);
 
     const getScrollKey = () => `productListScrollY_${categoryId || 'all'}_${searchQuery || 'all'}_${currentPage}`;
@@ -126,6 +136,8 @@ export default function ProductList() {
                 if (searchQuery) params.append('search', searchQuery);
                 selectedBrands.forEach(brand => params.append('brands', brand));
                 selectedGraphicsTypes.forEach(type => params.append('graphicsTypes', type));
+                if (selectedStores.length > 0) params.append('storeIds', selectedStores.join(','));
+                if (sortBy) params.append('sortBy', sortBy);
                 if (minPriceParam) params.append('minPrice', minPriceParam);
                 if (maxPriceParam) params.append('maxPrice', maxPriceParam);
                 if (inStockOnly) params.append('inStockOnly', 'true');
@@ -171,6 +183,7 @@ export default function ProductList() {
                 const nextOptions = {
                     brands: Array.isArray(data.brands) ? data.brands : [],
                     graphicsTypes: Array.isArray(data.graphicsTypes) ? data.graphicsTypes : [],
+                    stores: Array.isArray(data.stores) ? data.stores : [],
                     minPrice: Number(data.minPrice) || 0,
                     maxPrice: Number(data.maxPrice) || 0
                 };
@@ -217,6 +230,20 @@ export default function ProductList() {
         });
     };
 
+    const handleSortChange = (e) => {
+        const value = e.target.value;
+        setSearchParams(prev => {
+            const params = new URLSearchParams(prev);
+            if (value) {
+                params.set('sort', value);
+            } else {
+                params.delete('sort');
+            }
+            params.set('page', '1');
+            return params;
+        });
+    };
+
     const toggleInStockOnly = () => {
         setSearchParams(prev => {
             const params = new URLSearchParams(prev);
@@ -245,6 +272,7 @@ export default function ProductList() {
             const params = new URLSearchParams(prev);
             params.delete('brand');
             params.delete('graphicsType');
+            params.delete('store');
             params.delete('minPrice');
             params.delete('maxPrice');
             params.delete('inStock');
@@ -270,7 +298,7 @@ export default function ProductList() {
     const handlePriceCommit = () => commitPriceRange(priceDraft);
 
     const hasActiveFilters = selectedBrands.length > 0 || selectedGraphicsTypes.length > 0 ||
-        inStockOnly || !!minPriceParam || !!maxPriceParam;
+        selectedStores.length > 0 || inStockOnly || !!minPriceParam || !!maxPriceParam;
 
     const goToProductDetails = (productId, scrapedItemId, storeName) => {
         saveScrollPosition();
@@ -298,6 +326,17 @@ export default function ProductList() {
                 </div>
 
                 <div className="filter-section">
+                    <h3>Sort By</h3>
+                    <select className="sort-select" value={sortBy} onChange={handleSortChange}>
+                        {SORT_OPTIONS.map(opt => (
+                            <option key={opt.value || 'default'} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="filter-section">
                     <h3>Brand</h3>
                     {filterOptions.brands.length === 0 ? (
                         <p className="filter-empty">No brands available</p>
@@ -312,6 +351,28 @@ export default function ProductList() {
                                             onChange={() => toggleArrayParam('brand', brand)}
                                         />
                                         {brand}
+                                    </label>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                <div className="filter-section">
+                    <h3>Store</h3>
+                    {filterOptions.stores.length === 0 ? (
+                        <p className="filter-empty">No stores available</p>
+                    ) : (
+                        <ul className="filter-checkbox-list">
+                            {filterOptions.stores.map(store => (
+                                <li key={store}>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedStores.includes(store)}
+                                            onChange={() => toggleArrayParam('store', store)}
+                                        />
+                                        {store}
                                     </label>
                                 </li>
                             ))}
