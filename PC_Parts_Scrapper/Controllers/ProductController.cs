@@ -25,6 +25,8 @@ namespace PC_Parts_Scrapper.Controllers
             [FromQuery] decimal? minPrice,
             [FromQuery] decimal? maxPrice,
             [FromQuery] bool? inStockOnly,
+            [FromQuery] string? sortBy,
+            [FromQuery] string? storeIds,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
@@ -65,6 +67,51 @@ namespace PC_Parts_Scrapper.Controllers
                     si.PriceHistories.OrderByDescending(ph => ph.CheckedAt).Select(ph => (decimal?)ph.Price).FirstOrDefault() >= (minPrice ?? 0)
                     && si.PriceHistories.OrderByDescending(ph => ph.CheckedAt).Select(ph => (decimal?)ph.Price).FirstOrDefault() <= (maxPrice ?? decimal.MaxValue)));
             }
+
+            if (!string.IsNullOrWhiteSpace(storeIds))
+            {
+                var storeNames = storeIds
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(s => s.ToLower())
+                    .ToArray();
+
+                if (storeNames.Length > 0)
+                {
+                    query = query.Where(p => p.ScrapedItems.Any(si =>
+                        si.Store != null && storeNames.Contains(si.Store.Name.ToLower())));
+                }
+            }
+
+            // Latest price for a product = lowest current price across its store listings.
+            // A listing with no price history contributes null and is ignored by Min().
+            query = sortBy switch
+            {
+                "price_asc" => query
+                    .OrderBy(p => p.ScrapedItems
+                        .Select(si => si.PriceHistories
+                            .OrderByDescending(ph => ph.CheckedAt)
+                            .Select(ph => (decimal?)ph.Price)
+                            .FirstOrDefault())
+                        .Min() ?? decimal.MaxValue)
+                    .ThenBy(p => p.ProductId),
+                "price_desc" => query
+                    .OrderByDescending(p => p.ScrapedItems
+                        .Select(si => si.PriceHistories
+                            .OrderByDescending(ph => ph.CheckedAt)
+                            .Select(ph => (decimal?)ph.Price)
+                            .FirstOrDefault())
+                        .Min() ?? decimal.MinValue)
+                    .ThenBy(p => p.ProductId),
+                "latest" => query
+                    .OrderByDescending(p => p.ScrapedItems
+                        .SelectMany(si => si.PriceHistories)
+                        .Max(ph => (DateTimeOffset?)ph.CheckedAt) ?? DateTimeOffset.MinValue)
+                    .ThenBy(p => p.ProductId),
+                "popularity" => query
+                    .OrderByDescending(p => p.PriceAlerts.Count)
+                    .ThenBy(p => p.ProductId),
+                _ => query.OrderBy(p => p.ProductId)
+            };
 
             int totalCount = await query.CountAsync();
             int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
@@ -134,6 +181,13 @@ namespace PC_Parts_Scrapper.Controllers
                 .OrderBy(g => g)
                 .ToListAsync();
 
+            var stores = await itemsQuery
+                .Where(si => si.Store != null)
+                .Select(si => si.Store!.Name)
+                .Distinct()
+                .OrderBy(s => s)
+                .ToListAsync();
+
             var latestPrices = await itemsQuery
                 .Select(si => si.PriceHistories
                     .OrderByDescending(ph => ph.CheckedAt)
@@ -146,6 +200,7 @@ namespace PC_Parts_Scrapper.Controllers
             {
                 Brands = brands,
                 GraphicsTypes = graphicsTypes,
+                Stores = stores,
                 MinPrice = latestPrices.Count > 0 ? latestPrices.Min() : 0,
                 MaxPrice = latestPrices.Count > 0 ? latestPrices.Max() : 0
             });
