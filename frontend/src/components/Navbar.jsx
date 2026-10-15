@@ -129,7 +129,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-top">
         <div className="nav-container-top">
-          <Link to="/" className="nav-logo">PC Parts Scrapper</Link>
+          <Link to="/" className="nav-logo">FindPcParts</Link>
 
           <div className="search-box" ref={searchBoxRef}>
             <form className="search-bar" onSubmit={handleSearch}>
