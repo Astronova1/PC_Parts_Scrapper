@@ -1,78 +1,91 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const {
+    user: auth0User,
+    isAuthenticated,
+    isLoading,
+    loginWithRedirect,
+    logout: auth0Logout,
+    getAccessTokenSilently,
+  } = useAuth0();
+
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const decoded = jwtDecode(token);
-      setUser({
-        email: decoded.email,
-        firstName: decoded.firstName,
-        lastName: decoded.lastName,
-        roles: decoded.roles || [],
-        exp: decoded.exp
-      });
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      setUser(null);
-    }
-    setLoading(false);
-  }, [token]);
+    let cancelled = false;
 
-  const login = async (email, password) => {
-    try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token } = response.data;
-      localStorage.setItem('token', token);
-      setToken(token);
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Login failed' 
-      };
-    }
-  };
+    const loadToken = async () => {
+      if (!isAuthenticated) {
+        setToken(null);
+        delete axios.defaults.headers.common['Authorization'];
+        return;
+      }
+      try {
+        const accessToken = await getAccessTokenSilently();
+        if (cancelled) return;
+        setToken(accessToken);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      } catch (err) {
+        console.error('Failed to get Auth0 access token:', err);
+        setToken(null);
+        delete axios.defaults.headers.common['Authorization'];
+      }
+    };
 
-  const register = async (email, password, firstName, lastName) => {
-    try {
-      await axios.post('/api/auth/register', { email, password, firstName, lastName });
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Registration failed' 
-      };
-    }
-  };
+    loadToken();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, getAccessTokenSilently]);
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
-  };
+  const user = auth0User
+    ? {
+        email: auth0User.email,
+        firstName: auth0User.given_name || auth0User.nickname || auth0User.name,
+        lastName: auth0User.family_name,
+        name: auth0User.name,
+        picture: auth0User.picture,
+        roles: auth0User['https://findpcparts.app/roles'] || [],
+      }
+    : null;
 
-  const isAuthenticated = !!user && user.exp * 1000 > Date.now();
+  const login = useCallback(
+    (returnTo) =>
+      loginWithRedirect({
+        appState: { returnTo: returnTo || window.location.pathname },
+      }),
+    [loginWithRedirect]
+  );
+
+  const register = useCallback(
+    (returnTo) =>
+      loginWithRedirect({
+        appState: { returnTo: returnTo || window.location.pathname },
+        authorizationParams: { screen_hint: 'signup' },
+      }),
+    [loginWithRedirect]
+  );
+
+  const logout = useCallback(
+    () => auth0Logout({ logoutParams: { returnTo: window.location.origin } }),
+    [auth0Logout]
+  );
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      login,
-      register,
-      logout,
-      isAuthenticated,
-      token
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading: isLoading,
+        isAuthenticated,
+        token,
+        login,
+        register,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
