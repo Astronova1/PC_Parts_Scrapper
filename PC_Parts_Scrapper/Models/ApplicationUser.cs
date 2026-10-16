@@ -5,6 +5,7 @@ namespace PC_Parts_Scrapper.Models
 {
     public class ApplicationUser : IdentityUser
     {
+        public string? Auth0Id { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public DateTime CreatedAt { get; set; }
