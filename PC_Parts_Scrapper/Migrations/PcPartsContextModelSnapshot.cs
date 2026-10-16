@@ -162,6 +162,9 @@ namespace PC_Parts_Scrapper.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Auth0Id")
+                        .HasColumnType("text");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
@@ -360,9 +363,6 @@ namespace PC_Parts_Scrapper.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("tempe")
-                        .HasColumnType("text");
-
                     b.HasKey("ProductId");
 
                     b.HasIndex("CategoryId");
@@ -395,9 +395,6 @@ namespace PC_Parts_Scrapper.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Url")
-                        .HasColumnType("text");
-
-                    b.Property<string>("temp")
                         .HasColumnType("text");
 
                     b.HasKey("ScrapedItemId");
