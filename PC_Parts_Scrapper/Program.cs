@@ -6,6 +6,7 @@ using PC_Parts_Scrapper.Services;
 using PC_Parts_Scrapper.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -47,8 +48,22 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 // 3. Configure JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
+//var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+//var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Secret"]!);
+
+//using auth0
+var auth0Domain = builder.Configuration["Auth0:Domain"];
+var authAudience = builder.Configuration["Auth0:Audience"];
+
+// Auth0 issuer/authority must be an https URL ending with a trailing slash.
+// Accept a bare domain ("dev-xxx.eu.auth0.com") in config and normalise it here.
+if (!string.IsNullOrWhiteSpace(auth0Domain))
+{
+    if (!auth0Domain.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        auth0Domain = $"https://{auth0Domain}";
+    if (!auth0Domain.EndsWith("/"))
+        auth0Domain += "/";
+}
 
 builder.Services.AddAuthentication(options =>
 {
@@ -57,15 +72,17 @@ builder.Services.AddAuthentication(options =>
 })
     .AddJwtBearer(options =>
     {
+        options.Authority = auth0Domain;
+        options.Audience = authAudience;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
+            ValidIssuer = auth0Domain,
             ValidateAudience = true,
+            ValidAudience = authAudience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(secretKey)
+            NameClaimType = ClaimTypes.NameIdentifier
         };
     });
 builder.Services.AddAuthorization();
@@ -109,6 +126,7 @@ app.UseRouting();
 
 app.UseCors("AllowReactApp");
 app.UseAuthentication();
+app.UseMiddleware<PC_Parts_Scrapper.Middleware.Auth0UserSyncMiddleware>();
 app.UseAuthorization();
 
 app.MapControllerRoute(
