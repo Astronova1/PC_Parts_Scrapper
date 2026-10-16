@@ -2,15 +2,8 @@ using System.Text.RegularExpressions;
 
 namespace PC_Parts_Scrapper.Helpers
 {
-    /// <summary>
-    /// Centralises the regex-based extraction of listing metadata (brand, graphics chip vendor)
-    /// from scraped product titles, so scraping and backfill use identical logic.
-    /// </summary>
     public static class ProductParser
     {
-        // Ordered roughly by how AIB/OEM names appear in CZone & ZahComputers titles.
-        // "PNY" and "XFX" are short enough to false-match inside other words, so they use
-        // word boundaries like everything else here.
         private static readonly string[] KnownBrands = new[]
         {
             "ASUS", "MSI", "GIGABYTE", "ASROCK", "COLORFUL", "ZOTAC", "INNO3D",
@@ -24,10 +17,9 @@ namespace PC_Parts_Scrapper.Helpers
         private static readonly Regex AmdGpuPattern =
             new(@"(?i)\b(RX|RADEON)\b", RegexOptions.Compiled);
 
-        /// <summary>
-        /// Extracts the AIB/OEM brand from a listing title, e.g. "Asus RTX 4070 Dual OC" -> "Asus".
-        /// Returns null when no known brand token is found.
-        /// </summary>
+
+        // Extracts the AIB/OEM brand from a listing title, e.g. "Asus RTX 4070 Dual OC" -> "Asus".
+        // Returns null when no known brand token is found.
         public static string? ExtractBrand(string? title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -44,10 +36,6 @@ namespace PC_Parts_Scrapper.Helpers
             return null;
         }
 
-        /// <summary>
-        /// Extracts the graphics chip vendor ("NVIDIA"/"AMD") for GPU listings.
-        /// Returns null for non-GPU categories or when the title doesn't match a known chip family.
-        /// </summary>
         public static string? ExtractGraphicsType(string? title, string? categoryName)
         {
             if (string.IsNullOrWhiteSpace(title) || !string.Equals(categoryName, "GPU", StringComparison.OrdinalIgnoreCase))

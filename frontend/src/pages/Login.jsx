@@ -1,60 +1,34 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { isAuthenticated, loading, login, register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  const returnTo = location.state?.from || '/';
 
-    const result = await login(email, password);
-    if (result.success) {
-      navigate('/');
-    } else {
-      setError(result.error);
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate(returnTo, { replace: true });
     }
-    setLoading(false);
-  };
+  }, [loading, isAuthenticated, navigate, returnTo]);
 
   return (
     <div className="auth-container">
       <div className="auth-card">
         <h2>Login</h2>
-        {error && <div className="auth-error">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
+        <p>Sign in securely with Auth0 to set price alerts and get notifications.</p>
+        <button type="button" onClick={() => login(returnTo)} disabled={loading}>
+          {loading ? 'Loading...' : 'Log In'}
+        </button>
         <p>
-          Don't have an account? <Link to="/register">Register</Link>
+          Don't have an account?{' '}
+          <button type="button" className="link-button" onClick={() => register(returnTo)}>
+            Sign Up
+          </button>
         </p>
       </div>
     </div>

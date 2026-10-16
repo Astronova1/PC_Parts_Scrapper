@@ -97,3 +97,20 @@
 .auth-card a:hover {
   text-decoration: underline;
 }
+
+.auth-card .link-button {
+  width: auto;
+  display: inline;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #4d6bfe;
+  font-size: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.auth-card .link-button:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
