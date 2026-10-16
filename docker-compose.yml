@@ -33,6 +33,8 @@ services:
       - JwtSettings__Issuer=https://findpcparts.app
       - JwtSettings__Audience=https://findpcparts.app
       - JwtSettings__ExpiryMinutes=60
+      - Auth0__Audience=${AUTH0_AUDIENCE}
+      - Auth0__Domain=${AUTH0_DOMAIN}
       - PredictionService__BaseUrl=http://prediction:8000
     ports:
       - "8080:8080"
