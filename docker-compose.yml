@@ -1,23 +1,4 @@
 services:
-  # 1. PostgreSQL Database Service
-  postgres-db:
-    image: postgres:16-alpine
-    container_name: pcparts_postgres
-    restart: always
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   # 2. .NET 8 Backend + Playwright Scraper Service
   backend:
     build:
@@ -27,7 +8,7 @@ services:
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - DATABASE_URL=${DIRECT_URL}
       - FlareSolverr__BaseUrl=http://flaresolverr:8191/v1
       - JwtSettings__Secret=${JWT_SECRET}
       - JwtSettings__Issuer=https://findpcparts.app
@@ -41,8 +22,6 @@ services:
     volumes:
       - playwright_profile:/app/playwright_profile
     depends_on:
-      postgres-db:
-        condition: service_healthy
       prediction:
         condition: service_started
 
@@ -82,5 +61,4 @@ services:
       - backend
 
 volumes:
-  postgres_data:
   playwright_profile:
