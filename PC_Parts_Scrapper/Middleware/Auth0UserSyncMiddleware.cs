@@ -12,7 +12,6 @@ namespace PC_Parts_Scrapper.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly IServiceScopeFactory _scopeFactory;
-.
         private static readonly string[] EmailClaimTypes =
         {
             ClaimTypes.Email,
