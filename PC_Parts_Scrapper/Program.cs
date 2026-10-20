@@ -8,6 +8,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
+using DotNetEnv;
+
+// Local dev only: traverse up the tree to find the repo root .env.
+Env.TraversePath().NoClobber().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +41,12 @@ if (!string.IsNullOrEmpty(databaseUrl))
     var database = databaseUri.AbsolutePath.TrimStart('/');
 
     connectionString = $"Host={databaseUri.Host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+}
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Database configuration is missing. Set ConnectionStrings:DefaultConnection or DATABASE_URL.");
 }
 
 builder.Services.AddDbContext<PcPartsContext>(options =>
