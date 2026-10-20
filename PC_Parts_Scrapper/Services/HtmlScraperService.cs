@@ -24,7 +24,7 @@ namespace PC_Parts_Scrapper.Services
 
         public async Task CheckPriceAlertsAsync()
         {
-            var productsWithAlerts = await _pc_parts_Context.Products
+            var productsWithAlerts = await _pc_parts_Context.Products   
                 .Where(p => p.ScrapedItems.Any(si => si.PriceHistories.Any()))
                 .Include(p => p.ScrapedItems)
                     .ThenInclude(si => si.PriceHistories)
@@ -537,7 +537,7 @@ namespace PC_Parts_Scrapper.Services
                             rawHtml = result.Solution.Response;
                             var doc = new HtmlDocument();
                             doc.LoadHtml(rawHtml);
-                            products = doc.DocumentNode.SelectNodes("//div[contains(@class, 'product-list-content') or contains(@class, 'product-element-bottom')]");
+                            products = doc.DocumentNode.SelectNodes("//div[contains(@class,'ProductCard-module') and contains(@class,'__foot')]");
                         }
                         else
                         {
@@ -546,7 +546,7 @@ namespace PC_Parts_Scrapper.Services
                         }
                     }
                     catch (Exception ex)
-                    {
+                    {   
                         Console.WriteLine($"[ZahComputers Error] HTTP Request failed on page {pageNum}: {ex.Message}");
                         break;
                     }
@@ -573,16 +573,16 @@ namespace PC_Parts_Scrapper.Services
 
                     foreach (var pro in products)
                     {
-                        var name = pro.SelectSingleNode(".//h3[contains(@class,'wd-entities-title')]/a");
+                        var name = pro.SelectSingleNode(".//h3[contains(@class,'ProductCard-module__bki8ua__title')]/a");
                         string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
 
                         Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
                         if (match.Success)
                         {
-                            var salePriceNode = pro.SelectSingleNode(".//ins//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
-                            var originalPriceNode = pro.SelectSingleNode(".//del//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
-                            var price_node = salePriceNode ?? pro.SelectSingleNode(".//span[contains(@class, 'woocommerce-Price-amount')]/bdi");
-                            var url_node = pro.SelectSingleNode(".//a");
+                            var salePriceNode = pro.SelectSingleNode(".//span[contains(@class, 'Price-module') and contains(@class, '__now')]");
+                            var originalPriceNode = pro.SelectSingleNode(".//span[contains(@class, 'Price-module') and contains(@class, '__before')]");
+                            var price_node = salePriceNode ?? originalPriceNode;
+                            var url_node = pro.SelectSingleNode("./a");
                             string base_uri = "https://www.zahcomputers.pk";
                             string href = url_node?.GetAttributeValue("href", "") ?? "";
                             Uri rel_url = string.IsNullOrEmpty(href) ? new Uri(base_uri) : new Uri(new Uri(base_uri), href);
