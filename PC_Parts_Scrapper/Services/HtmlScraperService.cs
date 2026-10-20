@@ -537,7 +537,7 @@ namespace PC_Parts_Scrapper.Services
                             rawHtml = result.Solution.Response;
                             var doc = new HtmlDocument();
                             doc.LoadHtml(rawHtml);
-                            products = doc.DocumentNode.SelectNodes("//div[contains(@class,'ProductCard-module') and contains(@class,'__foot')]");
+                            products = doc.DocumentNode.SelectNodes("//article[contains(@class,'ProductCard-module') and contains(@class,'__card')]");
                         }
                         else
                         {
@@ -573,7 +573,7 @@ namespace PC_Parts_Scrapper.Services
 
                     foreach (var pro in products)
                     {
-                        var name = pro.SelectSingleNode(".//h3[contains(@class,'ProductCard-module__bki8ua__title')]/a");
+                        var name = pro.SelectSingleNode(".//h3[contains(@class,'ProductCard-module') and contains(@class,'__title')]");
                         string pro_name = HtmlEntity.DeEntitize(name?.InnerText.Trim() ?? "Unknown");
 
                         Match match = Regex.Match(pro_name, pattern, RegexOptions.IgnoreCase);
